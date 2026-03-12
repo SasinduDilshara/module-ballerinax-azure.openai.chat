@@ -34,7 +34,7 @@ http:Service mockService = service object {
                 "id": "chatcmpl-mock001",
                 "object": "chat.completion",
                 "created": 1723091495,
-                "model": check model,
+                "model": model,
                 "choices": [
                     {
                         "index": 0,
@@ -83,7 +83,7 @@ http:Service mockService = service object {
             "id": "chatcmpl-mock001",
             "object": "chat.completion",
             "created": 1723091495,
-            "model": check model,
+            "model": model,
             "choices": [
                 {
                     "index": 0,
