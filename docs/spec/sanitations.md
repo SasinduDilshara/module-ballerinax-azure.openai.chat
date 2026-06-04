@@ -55,6 +55,13 @@ These changes are done in order to improve the overall usability, and as workaro
    - **Updated**: Only the `/chat/completions` path and its related schemas are retained
    - **Reason**: This connector module only covers the Chat Completions API. Including unrelated endpoints would generate unnecessary code.
 
+8. **Made `max_tokens`, `presence_penalty`, and `frequency_penalty` nullable in `chatCompletionsRequestCommon`**:
+
+   - **Changed Schema**: `chatCompletionsRequestCommon`
+   - **Original**: `max_tokens` (`integer`), `presence_penalty` (`number`), and `frequency_penalty` (`number`) were declared without `nullable: true`.
+   - **Updated**: Added `nullable: true` to all three fields.
+   - **Reason**: `createChatCompletionRequest` includes `chatCompletionsRequestCommon` (via `allOf`) and re-declares these same fields with `nullable: true`. In Ballerina, `allOf` is mapped to type inclusion, and an included field cannot be overridden by a wider (nullable) type — generation produced code that failed to compile with errors such as `included field 'frequency_penalty' of type 'decimal' cannot be overridden by a field of type 'decimal?'`. Making the base fields nullable aligns the included and overriding types so the generated `types.bal` compiles. (As a side effect, the numeric range constraints on these fields are dropped during generation, since Ballerina constraints are not supported on nullable union types — this matches the behavior already documented for `temperature`, `top_p`, and `stop`.)
+
 ## OpenAPI cli command
 
 The following command was used to generate the Ballerina client from the OpenAPI specification. The command should be executed from the repository root directory.
