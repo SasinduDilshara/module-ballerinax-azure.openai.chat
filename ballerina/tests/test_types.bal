@@ -109,7 +109,7 @@ isolated function testResponseModelTypesAreConstructable() {
     chatCompletionsRequestCommon common = {temperature: 0.5d, max_tokens: 100, logit_bias: {}};
     chatCompletionRequestDeveloperMessageContentPart developerPart = {'type: "text", text: "dev"};
     chatCompletionRequestToolMessageContentPart toolPart = {'type: "text", text: "tool"};
-    user_security_context securityContext =
+    userSecurityContext securityContext =
         {application_name: "app", end_user_id: "u", end_user_tenant_id: "t", source_ip: "1.2.3.4"};
     test:assertEquals(common.max_tokens, 100);
     test:assertEquals(developerPart.text, "dev");
