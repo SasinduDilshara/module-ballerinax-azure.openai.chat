@@ -62,6 +62,13 @@ These changes are done in order to improve the overall usability, and as workaro
    - **Updated**: Added `nullable: true` to all three fields.
    - **Reason**: `createChatCompletionRequest` includes `chatCompletionsRequestCommon` (via `allOf`) and re-declares these same fields with `nullable: true`. In Ballerina, `allOf` is mapped to type inclusion, and an included field cannot be overridden by a wider (nullable) type — generation produced code that failed to compile with errors such as `included field 'frequency_penalty' of type 'decimal' cannot be overridden by a field of type 'decimal?'`. Making the base fields nullable aligns the included and overriding types so the generated `types.bal` compiles. (As a side effect, the numeric range constraints on these fields are dropped during generation, since Ballerina constraints are not supported on nullable union types — this matches the behavior already documented for `temperature`, `top_p`, and `stop`.)
 
+9. **Removed the `default` of `reasoning_effort` in `createChatCompletionRequest`**:
+
+   - **Changed Schema**: `createChatCompletionRequest`
+   - **Original**: `reasoning_effort` was declared with `default: "medium"`, which the Ballerina OpenAPI tool maps to a non-optional defaulted field (`"low"|"medium"|"high" reasoning_effort = "medium";`).
+   - **Updated**: Removed the `default`, so the field is generated as an optional field (`"low"|"medium"|"high" reasoning_effort?;`).
+   - **Reason**: With the default in place, every serialized request (`jsondata:toJson`) always carried `reasoning_effort: "medium"`, even for non-reasoning deployments (e.g. GPT-4o/GPT-3.5) and older `api-version`s that reject the parameter ("Unrecognized request argument"). `reasoning_effort` is optional in the official spec and valid only for reasoning models, so it must be omitted unless the caller explicitly sets it.
+
 ## OpenAPI cli command
 
 The following command was used to generate the Ballerina client from the OpenAPI specification. The command should be executed from the repository root directory.

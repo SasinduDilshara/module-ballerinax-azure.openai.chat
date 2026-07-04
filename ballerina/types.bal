@@ -470,7 +470,7 @@ public type createChatCompletionRequest record {
     # [reasoning models](https://platform.openai.com/docs/guides/reasoning).
     # 
     # Currently supported values are `low`, `medium`, and `high`. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.
-    "low"|"medium"|"high" reasoning_effort = "medium";
+    "low"|"medium"|"high" reasoning_effort?;
     # Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim.
     decimal? frequency_penalty = 0;
     # Modify the likelihood of specified tokens appearing in the completion.

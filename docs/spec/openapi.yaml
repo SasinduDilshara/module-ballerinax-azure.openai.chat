@@ -1673,8 +1673,7 @@
                   "low",
                   "medium",
                   "high"
-                ],
-                "default": "medium"
+                ]
               },
               "frequency_penalty": {
                 "type": "number",
