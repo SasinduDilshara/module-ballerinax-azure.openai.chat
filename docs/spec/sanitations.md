@@ -6,7 +6,7 @@ _Edition_: Swan Lake
 # Sanitation for OpenAPI specification
 
 This document records the sanitation done on top of the official OpenAPI specification from Azure AI Foundry Models Service.
-The OpenAPI specification is obtained from the [Azure REST API Specs](https://github.com/Azure/azure-rest-api-specs/blob/main/specification/ai/data-plane/OpenAI.v1/azure-v1-v1-generated.yaml).
+The OpenAPI specification is obtained from the [Azure REST API Specs](https://github.com/Azure/azure-rest-api-specs/blob/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/preview/2025-04-01-preview/inference.json).
 These changes are done in order to improve the overall usability, and as workarounds for some known language limitations.
 
 1. **Converted nullable type arrays to `nullable: true`**:
@@ -69,5 +69,3 @@ The following command was used to generate the Ballerina client from the OpenAPI
 ```bash
 bal openapi -i docs/spec/openapi.yaml --mode client --license docs/license.txt -o ballerina
 ```
-
-Note: The license year is hardcoded to 2026, change if necessary.
