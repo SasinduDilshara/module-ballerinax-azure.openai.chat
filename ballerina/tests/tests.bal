@@ -40,7 +40,7 @@ isolated function initClient() returns Client|error {
     groups: ["live_tests", "mock_tests"]
 }
 isolated function testSimpleChatCompletion() returns error? {
-    chat_completions_body request = {
+    ChatCompletionsBody request = {
         model: "gpt-4o-mini",
         messages: [
             {role: "system", "content": "You are a helpful assistant."},
@@ -48,7 +48,7 @@ isolated function testSimpleChatCompletion() returns error? {
         ]
     };
 
-    inline_response_200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
+    InlineResponse200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
 
     ChatCompletionResponse completion = check response.ensureType();
     test:assertTrue(completion.id.length() > 0, "Expected a chat completion id");
@@ -56,7 +56,7 @@ isolated function testSimpleChatCompletion() returns error? {
     test:assertEquals(completion.'object, "chat.completion");
     test:assertTrue(completion.choices.length() > 0, "Expected at least one completion choice");
 
-    OpenAI\.CreateChatCompletionResponseChoices choice = completion.choices[0];
+    OpenAICreateChatCompletionResponseChoices choice = completion.choices[0];
     test:assertEquals(choice.finish_reason, "stop");
     test:assertEquals(choice.message.role, "assistant");
     test:assertTrue(choice.message.content is string && (<string>choice.message.content).length() > 0,
@@ -71,12 +71,12 @@ isolated function testClientInitWithApiKeyAuth() returns error? {
     // `ApiKeysConfig` requires both the `api-key` and `authorization` fields.
     Client apiKeyClient = check new ({auth: {api\-key: apiKey, authorization: "Bearer " + token}}, mockServiceUrl);
 
-    chat_completions_body request = {
+    ChatCompletionsBody request = {
         model: "gpt-4o-mini",
         messages: [{role: "user", "content": "Ping"}]
     };
 
-    inline_response_200 response = check apiKeyClient->/chat/completions.post(request, api\-version = apiVersion);
+    InlineResponse200 response = check apiKeyClient->/chat/completions.post(request, api\-version = apiVersion);
 
     ChatCompletionResponse completion = check response.ensureType();
     test:assertEquals(completion.choices.length(), 1);
@@ -88,7 +88,7 @@ isolated function testClientInitWithApiKeyAuth() returns error? {
 isolated function testChatCompletionWithOptionalParams() returns error? {
     // Validates the nullable-field handling: temperature, top_p, max_completion_tokens,
     // presence_penalty and frequency_penalty accept concrete values.
-    chat_completions_body request = {
+    ChatCompletionsBody request = {
         model: "gpt-4o-mini",
         messages: [{role: "user", "content": "Tell me a joke"}],
         temperature: 0.7,
@@ -100,7 +100,7 @@ isolated function testChatCompletionWithOptionalParams() returns error? {
         user: "test-user-1234"
     };
 
-    inline_response_200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
+    InlineResponse200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
 
     ChatCompletionResponse completion = check response.ensureType();
     test:assertEquals(completion.choices[0].finish_reason, "stop");
@@ -111,7 +111,7 @@ isolated function testChatCompletionWithOptionalParams() returns error? {
 }
 isolated function testChatCompletionWithNullableFieldsAsNil() returns error? {
     // These request fields are typed `T?` and must accept nil.
-    chat_completions_body request = {
+    ChatCompletionsBody request = {
         model: "gpt-4o-mini",
         messages: [{role: "user", "content": "Hello"}],
         temperature: (),
@@ -123,13 +123,13 @@ isolated function testChatCompletionWithNullableFieldsAsNil() returns error? {
         seed: ()
     };
 
-    inline_response_200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
+    InlineResponse200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
 
     ChatCompletionResponse completion = check response.ensureType();
     test:assertTrue(completion.choices.length() > 0);
-    OpenAI\.CompletionUsage? usage = completion.usage;
-    test:assertTrue(usage is OpenAI\.CompletionUsage, "Expected usage statistics");
-    if usage is OpenAI\.CompletionUsage {
+    OpenAICompletionUsage? usage = completion.usage;
+    test:assertTrue(usage is OpenAICompletionUsage, "Expected usage statistics");
+    if usage is OpenAICompletionUsage {
         test:assertEquals(usage.total_tokens, 24);
     }
 }
@@ -138,7 +138,7 @@ isolated function testChatCompletionWithNullableFieldsAsNil() returns error? {
     groups: ["mock_tests"]
 }
 isolated function testChatCompletionWithToolCalls() returns error? {
-    chat_completions_body request = {
+    ChatCompletionsBody request = {
         model: "gpt-4o-mini",
         messages: [{role: "user", "content": "What is the weather in Colombo?"}],
         tools: [
@@ -154,19 +154,19 @@ isolated function testChatCompletionWithToolCalls() returns error? {
         tool_choice: "auto"
     };
 
-    inline_response_200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
+    InlineResponse200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
 
     ChatCompletionResponse completion = check response.ensureType();
-    OpenAI\.CreateChatCompletionResponseChoices choice = completion.choices[0];
+    OpenAICreateChatCompletionResponseChoices choice = completion.choices[0];
     test:assertEquals(choice.finish_reason, "tool_calls");
 
-    OpenAI\.ChatCompletionMessageToolCallsItem? toolCalls = choice.message.tool_calls;
-    test:assertTrue(toolCalls is OpenAI\.ChatCompletionMessageToolCallsItem, "Expected tool calls in the response");
-    if toolCalls is OpenAI\.ChatCompletionMessageToolCallsItem {
+    OpenAIChatCompletionMessageToolCallsItem? toolCalls = choice.message.tool_calls;
+    test:assertTrue(toolCalls is OpenAIChatCompletionMessageToolCallsItem, "Expected tool calls in the response");
+    if toolCalls is OpenAIChatCompletionMessageToolCallsItem {
         test:assertEquals(toolCalls.length(), 1);
-        OpenAI\.ChatCompletionMessageToolCall|OpenAI\.ChatCompletionMessageCustomToolCall toolCall = toolCalls[0];
-        test:assertTrue(toolCall is OpenAI\.ChatCompletionMessageToolCall, "Expected a function tool call");
-        if toolCall is OpenAI\.ChatCompletionMessageToolCall {
+        OpenAIChatCompletionMessageToolCall|OpenAIChatCompletionMessageCustomToolCall toolCall = toolCalls[0];
+        test:assertTrue(toolCall is OpenAIChatCompletionMessageToolCall, "Expected a function tool call");
+        if toolCall is OpenAIChatCompletionMessageToolCall {
             test:assertEquals(toolCall.'function.name, "get_current_weather");
         }
     }
@@ -176,13 +176,13 @@ isolated function testChatCompletionWithToolCalls() returns error? {
     groups: ["mock_tests"]
 }
 isolated function testChatCompletionWithMultipleChoices() returns error? {
-    chat_completions_body request = {
+    ChatCompletionsBody request = {
         model: "gpt-4o-mini",
         messages: [{role: "user", "content": "Give me three greetings"}],
         n: 3
     };
 
-    inline_response_200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
+    InlineResponse200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
 
     ChatCompletionResponse completion = check response.ensureType();
     test:assertEquals(completion.choices.length(), 3);
@@ -194,12 +194,12 @@ isolated function testChatCompletionWithMultipleChoices() returns error? {
 }
 isolated function testChatCompletionWithPreviewApiVersion() returns error? {
     // `api-version` accepts the `preview` value in addition to `v1`.
-    chat_completions_body request = {
+    ChatCompletionsBody request = {
         model: "gpt-4o-mini",
         messages: [{role: "user", "content": "Hello preview channel"}]
     };
 
-    inline_response_200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = "preview");
+    InlineResponse200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = "preview");
 
     ChatCompletionResponse completion = check response.ensureType();
     test:assertEquals(completion.'object, "chat.completion");
@@ -209,12 +209,12 @@ isolated function testChatCompletionWithPreviewApiVersion() returns error? {
     groups: ["mock_tests"]
 }
 isolated function testChatCompletionWithEmptyMessagesReturnsError() {
-    chat_completions_body request = {
+    ChatCompletionsBody request = {
         model: "gpt-4o-mini",
         messages: []
     };
 
-    inline_response_200|error response = azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
+    InlineResponse200|error response = azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
 
     test:assertTrue(response is error, "Expected an error for an empty messages array");
     if response is http:ClientRequestError {

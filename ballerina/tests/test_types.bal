@@ -16,29 +16,29 @@
 
 import ballerina/test;
 
-// `inline_response_200` is a union of the non-streaming and streaming response
+// `InlineResponse200` is a union of the non-streaming and streaming response
 // shapes. These helper records mirror each member so tests can bind the response
 // to a concrete, field-addressable type via `ensureType`.
 type ChatCompletionResponse record {
     string id;
-    OpenAI\.CreateChatCompletionResponseChoices[] choices;
+    OpenAICreateChatCompletionResponseChoices[] choices;
     int created;
     string model;
     string system_fingerprint?;
     "chat.completion" 'object;
-    OpenAI\.CompletionUsage usage?;
-    inline_response_200_prompt_filter_results[] prompt_filter_results?;
+    OpenAICompletionUsage usage?;
+    InlineResponse200PromptFilterResults[] prompt_filter_results?;
 };
 
 type StreamingChatCompletionResponse record {
     string id;
-    OpenAI\.CreateChatCompletionStreamResponseChoices[] choices;
+    OpenAICreateChatCompletionStreamResponseChoices[] choices;
     int created;
     string model;
     string system_fingerprint?;
     "chat.completion.chunk" 'object;
-    OpenAI\.CompletionUsage usage?;
-    OpenAI\.ChatCompletionStreamResponseDelta delta?;
+    OpenAICompletionUsage usage?;
+    OpenAIChatCompletionStreamResponseDelta delta?;
     AzureContentFilterResultForChoice content_filter_results?;
 };
 
@@ -53,12 +53,12 @@ isolated function testResponseModelTypesAreConstructable() {
     // Content filtering result hierarchy.
     AzureContentFilterSeverityResult severity = {filtered: false, severity: "safe"};
     AzureContentFilterDetectionResult detected = {filtered: false, detected: false};
-    AzureContentFilterBlocklistResult_details blocklistDetail = {filtered: false, id: "blocklist-1"};
+    AzureContentFilterBlocklistResultDetails blocklistDetail = {filtered: false, id: "blocklist-1"};
     AzureContentFilterBlocklistResult blocklist = {filtered: false, details: [blocklistDetail]};
-    AzureContentFilterCustomTopicResult_details topicDetail = {detected: false, id: "topic-1"};
+    AzureContentFilterCustomTopicResultDetails topicDetail = {detected: false, id: "topic-1"};
     AzureContentFilterCustomTopicResult topics = {filtered: false, details: [topicDetail]};
-    AzureContentFilterResultForChoice_protected_material_code_citation citationInfo = {URL: "https://lib", license: "MIT"};
-    AzureContentFilterResultForChoice_protected_material_code withCitation =
+    AzureContentFilterResultForChoiceProtectedMaterialCodeCitation citationInfo = {URL: "https://lib", license: "MIT"};
+    AzureContentFilterResultForChoiceProtectedMaterialCode withCitation =
         {filtered: false, detected: false, citation: citationInfo};
     AzureContentFilterCompletionTextSpan span = {completion_start_offset: 0, completion_end_offset: 5};
     AzureContentFilterCompletionTextSpanDetectionResult withSpans =
@@ -82,26 +82,26 @@ isolated function testResponseModelTypesAreConstructable() {
     test:assertTrue(choiceResults.ungrounded_material is AzureContentFilterCompletionTextSpanDetectionResult);
 
     // Prompt filter result hierarchy.
-    AzureContentFilterResultForPrompt_content_filter_results promptFilterCategories =
+    AzureContentFilterResultForPromptContentFilterResults promptFilterCategories =
         {sexual: severity, jailbreak: detected, indirect_attack: detected};
     AzureContentFilterResultForPrompt promptResults =
         {prompt_index: 0, content_filter_results: promptFilterCategories};
-    inline_response_200_prompt_filter_results promptFilter =
+    InlineResponse200PromptFilterResults promptFilter =
         {prompt_index: 0, content_filter_results: promptResults};
     test:assertEquals(promptFilter.prompt_index, 0);
 
     // Token log-probability types.
-    OpenAI\.ChatCompletionTokenLogprobTopLogprobs topLogprob = {token: "Hi", logprob: -0.2d, bytes: [72, 105]};
-    OpenAI\.ChatCompletionTokenLogprob tokenLogprob =
+    OpenAIChatCompletionTokenLogprobTopLogprobs topLogprob = {token: "Hi", logprob: -0.2d, bytes: [72, 105]};
+    OpenAIChatCompletionTokenLogprob tokenLogprob =
         {token: "Hello", logprob: -0.1d, bytes: [72, 101], top_logprobs: [topLogprob]};
-    OpenAI\.CreateChatCompletionResponseChoicesLogprobs logprobs = {content: [tokenLogprob], refusal: ()};
+    OpenAICreateChatCompletionResponseChoicesLogprobs logprobs = {content: [tokenLogprob], refusal: ()};
     test:assertEquals(logprobs.content, [tokenLogprob]);
 
     // Usage breakdown types.
-    OpenAI\.CompletionUsagePromptTokensDetails promptDetails = {audio_tokens: 2, cached_tokens: 4};
-    OpenAI\.CompletionUsageCompletionTokensDetails completionDetails =
+    OpenAICompletionUsagePromptTokensDetails promptDetails = {audio_tokens: 2, cached_tokens: 4};
+    OpenAICompletionUsageCompletionTokensDetails completionDetails =
         {accepted_prediction_tokens: 1, audio_tokens: 3, reasoning_tokens: 5, rejected_prediction_tokens: 2};
-    OpenAI\.CompletionUsage usage = {
+    OpenAICompletionUsage usage = {
         prompt_tokens: 20,
         completion_tokens: 30,
         total_tokens: 50,
@@ -111,16 +111,16 @@ isolated function testResponseModelTypesAreConstructable() {
     test:assertEquals(usage.total_tokens, 50);
 
     // Response message types.
-    OpenAI\.ChatCompletionResponseMessageFunctionCall functionCall = {name: "legacy_fn", arguments: "{}"};
-    OpenAI\.ChatCompletionResponseMessageAudio audio =
+    OpenAIChatCompletionResponseMessageFunctionCall functionCall = {name: "legacy_fn", arguments: "{}"};
+    OpenAIChatCompletionResponseMessageAudio audio =
         {id: "audio_1", expires_at: 1723095000, data: "BASE64", transcript: "spoken"};
-    OpenAI\.ChatCompletionMessageToolCall toolCall =
+    OpenAIChatCompletionMessageToolCall toolCall =
         {id: "call_1", 'type: "function", 'function: {name: "lookup", arguments: "{}"}};
-    OpenAI\.ChatCompletionMessageCustomToolCall customToolCall =
+    OpenAIChatCompletionMessageCustomToolCall customToolCall =
         {id: "call_2", 'type: "custom", custom: {name: "run", input: "echo"}};
-    OpenAI\.ChatCompletionResponseMessageAnnotations urlAnnotation =
+    OpenAIChatCompletionResponseMessageAnnotations urlAnnotation =
         {'type: "url_citation", url_citation: {end_index: 5, start_index: 0, url: "https://x", title: "Doc"}};
-    OpenAI\.ChatCompletionResponseMessage message = {
+    OpenAIChatCompletionResponseMessage message = {
         role: "assistant",
         refusal: (),
         content: "answer",
@@ -129,7 +129,7 @@ isolated function testResponseModelTypesAreConstructable() {
         function_call: functionCall,
         audio: audio
     };
-    OpenAI\.CreateChatCompletionResponseChoices choice =
+    OpenAICreateChatCompletionResponseChoices choice =
         {finish_reason: "stop", index: 0, message: message, logprobs: logprobs, content_filter_results: choiceResults};
     test:assertEquals(choice.message.role, "assistant");
     test:assertEquals(choice.message.tool_calls, [toolCall, customToolCall]);
@@ -142,21 +142,21 @@ isolated function testResponseModelTypesAreConstructable() {
 
 // Constructs the streaming response types that are not produced through the
 // single non-streaming mock path, keeping those generated types compiled and
-// verified. Also confirms `inline_response_200` accepts the streaming member.
+// verified. Also confirms `InlineResponse200` accepts the streaming member.
 @test:Config {
     groups: ["mock_tests"]
 }
 isolated function testStreamingResponseTypes() {
-    OpenAI\.ChatCompletionMessageToolCallChunk toolCallChunk =
+    OpenAIChatCompletionMessageToolCallChunk toolCallChunk =
         {index: 0, id: "call_1", 'type: "function", 'function: {name: "lookup", arguments: "{}"}};
-    OpenAI\.ChatCompletionStreamResponseDelta delta = {
+    OpenAIChatCompletionStreamResponseDelta delta = {
         role: "assistant",
         content: "partial",
         refusal: (),
         tool_calls: [toolCallChunk],
         function_call: {name: "lookup", arguments: "{}"}
     };
-    OpenAI\.CreateChatCompletionStreamResponseChoices streamChoice =
+    OpenAICreateChatCompletionStreamResponseChoices streamChoice =
         {index: 0, finish_reason: (), delta: delta};
 
     StreamingChatCompletionResponse streamChunk = {
@@ -169,7 +169,7 @@ isolated function testStreamingResponseTypes() {
     };
     test:assertEquals(streamChunk.choices[0].delta.role, "assistant");
 
-    // `inline_response_200` is a union that also accepts the streaming shape.
-    inline_response_200 streamResponse = streamChunk;
+    // `InlineResponse200` is a union that also accepts the streaming shape.
+    InlineResponse200 streamResponse = streamChunk;
     test:assertTrue(streamResponse is StreamingChatCompletionResponse);
 }

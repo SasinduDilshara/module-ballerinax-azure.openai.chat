@@ -25,7 +25,7 @@ listener http:Listener httpListener = new (9090);
 //
 // The body is bound as `map<json>` so the mock accepts any valid request shape
 // (every message role and content-part variant) without re-implementing the
-// union data binding of `chat_completions_body` on the server side. `api-version`
+// union data binding of `ChatCompletionsBody` on the server side. `api-version`
 // is an optional query parameter, matching `CreateChatCompletionQueries`.
 http:Service mockService = service object {
 

@@ -44,7 +44,7 @@ public isolated client class Client {
     # + headers - Headers to be sent with the request 
     # + queries - Queries to be sent with the request 
     # + return - The request has succeeded. 
-    resource isolated function post chat/completions(chat_completions_body payload, map<string|string[]> headers = {}, *CreateChatCompletionQueries queries) returns inline_response_200|error {
+    resource isolated function post chat/completions(ChatCompletionsBody payload, map<string|string[]> headers = {}, *CreateChatCompletionQueries queries) returns InlineResponse200|error {
         string resourcePath = string `/chat/completions`;
         map<anydata> headerValues = {...headers};
         if self.apiKeyConfig is ApiKeysConfig {

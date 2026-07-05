@@ -28,7 +28,7 @@ public function main() returns error? {
     }, serviceUrl);
 
     // Create a chat completion request
-    chat:chat_completions_body request = {
+    chat:ChatCompletionsBody request = {
         model: "gpt-4o-mini",
         messages: [
             {role: "system", "content": "You are a helpful assistant."},
@@ -36,10 +36,10 @@ public function main() returns error? {
         ]
     };
 
-    chat:inline_response_200 response = check azureOpenAIChat->/chat/completions.post(request);
+    chat:InlineResponse200 response = check azureOpenAIChat->/chat/completions.post(request);
 
     // Extract the response content
-    record {string id; chat:OpenAI\.CreateChatCompletionResponseChoices[] choices; int created; string model; string system_fingerprint?; "chat.completion" 'object; chat:OpenAI\.CompletionUsage usage?; chat:inline_response_200_prompt_filter_results[] prompt_filter_results?;} chatResponse = check response.ensureType();
+    record {string id; chat:OpenAICreateChatCompletionResponseChoices[] choices; int created; string model; string system_fingerprint?; "chat.completion" 'object; chat:OpenAICompletionUsage usage?; chat:InlineResponse200PromptFilterResults[] prompt_filter_results?;} chatResponse = check response.ensureType();
 
     if chatResponse.choices.length() > 0 {
         string? content = chatResponse.choices[0].message.content;
@@ -49,8 +49,8 @@ public function main() returns error? {
     }
 
     // Print usage information
-    chat:OpenAI\.CompletionUsage? usage = chatResponse.usage;
-    if usage is chat:OpenAI\.CompletionUsage {
+    chat:OpenAICompletionUsage? usage = chatResponse.usage;
+    if usage is chat:OpenAICompletionUsage {
         io:println("Tokens used - Prompt: " + usage.prompt_tokens.toString() +
             ", Completion: " + usage.completion_tokens.toString() +
             ", Total: " + usage.total_tokens.toString());

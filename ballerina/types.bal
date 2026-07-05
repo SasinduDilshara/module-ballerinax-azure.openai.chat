@@ -20,100 +20,103 @@
 import ballerina/constraint;
 import ballerina/http;
 
-public type OpenAI\.ChatCompletionResponseMessageAnnotationsUrlCitation record {
-    int end_index;
-    int start_index;
-    string url;
-    string title;
-};
-
-public type OpenAI\.VoiceIdsOrCustomVoice OpenAI\.VoiceIdsShared|record {string id;};
-
-public type OpenAI\.CompletionUsage record {
-    int completion_tokens;
-    int prompt_tokens;
-    int total_tokens;
-    OpenAI\.CompletionUsageCompletionTokensDetails completion_tokens_details?;
-    OpenAI\.CompletionUsagePromptTokensDetails prompt_tokens_details?;
-};
-
-public type OpenAI\.CreateChatCompletionRequestAudio record {
-    OpenAI\.VoiceIdsOrCustomVoice voice;
-    "wav"|"aac"|"mp3"|"flac"|"opus"|"pcm16" format;
-};
-
-public type OpenAI\.CustomToolChatCompletionsCustomFormatGrammar record {
-    "grammar" 'type;
-    OpenAI\.CustomToolChatCompletionsCustomFormatGrammarGrammar grammar;
+# The parameters the functions accepts, described as a JSON Schema object. See the [guide](/docs/guides/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format.
+# Omitting `parameters` defines a function with an empty parameter list.
+public type OpenAIFunctionParameters record {
 };
 
 public type AzureAIFoundryModelsApiVersion "v1"|"preview";
 
-public type OpenAI\.ChatCompletionMessageCustomToolCall record {
-    string id;
-    "custom" 'type;
-    OpenAI\.ChatCompletionMessageCustomToolCallCustom custom;
+# Options for streaming response. Only set this when you set `stream: true`.
+public type OpenAIChatCompletionStreamOptions record {
+    # If set, an additional chunk will be streamed before the `data: [DONE]`
+    #   message. The `usage` field on this chunk shows the token usage statistics
+    #   for the entire request, and the `choices` field will always be an empty
+    #   array.
+    #   All other chunks will also include a `usage` field, but with a null
+    #   value. **NOTE:** If the stream is interrupted, you may not receive the
+    #   final usage chunk which contains the total token usage for the request.
+    boolean include_usage?;
+    # When true, stream obfuscation will be enabled. Stream obfuscation adds
+    #   random characters to an `obfuscation` field on streaming delta events to
+    #   normalize payload sizes as a mitigation to certain side-channel attacks.
+    #   These obfuscation fields are included by default, but add a small amount
+    #   of overhead to the data stream. You can set `include_obfuscation` to
+    #   false to optimize for bandwidth if you trust the network links between
+    #   your application and the OpenAI API.
+    boolean include_obfuscation?;
 };
 
-public type OpenAI\.ChatCompletionNamedToolChoiceFunction record {
+public type OpenAICustomToolChatCompletionsCustom record {
     string name;
-};
-
-public type OpenAI\.ChatCompletionNamedToolChoice record {
-    "function" 'type;
-    OpenAI\.ChatCompletionNamedToolChoiceFunction 'function;
-};
-
-public type OpenAI\.FunctionObject record {
     string description?;
-    string name;
-    OpenAI\.FunctionParameters parameters?;
-    boolean? strict?;
+    OpenAICustomToolChatCompletionsCustomFormatText|OpenAICustomToolChatCompletionsCustomFormatGrammar format?;
 };
 
-# The content filter category details for the result.
-public type AzureContentFilterResultForPrompt_content_filter_results record {
-    # A content filter category for language related to anatomical organs and genitals, romantic relationships, acts
-    # portrayed in erotic or affectionate terms, pregnancy, physical sexual acts, including those portrayed as an
-    # assault or a forced sexual violent act against one's will, prostitution, pornography, and abuse.
-    AzureContentFilterSeverityResult sexual?;
-    # A content filter category that can refer to any content that attacks or uses pejorative or discriminatory
-    # language with reference to a person or identity group based on certain differentiating attributes of these groups
-    # including but not limited to race, ethnicity, nationality, gender identity and expression, sexual orientation,
-    # religion, immigration status, ability status, personal appearance, and body size.
-    AzureContentFilterSeverityResult hate?;
-    # A content filter category for language related to physical actions intended to hurt, injure, damage, or kill
-    # someone or something; describes weapons, guns and related entities, such as manufactures, associations,
-    # legislation, and so on.
-    AzureContentFilterSeverityResult violence?;
-    # A content filter category that describes language related to physical actions intended to purposely hurt, injure,
-    # damage one's body or kill oneself.
-    AzureContentFilterSeverityResult self_harm?;
-    # A detection result that identifies whether crude, vulgar, or otherwise objection language is present in the
-    # content.
-    AzureContentFilterDetectionResult profanity?;
-    # A collection of binary filtering outcomes for configured custom blocklists.
-    AzureContentFilterBlocklistResult custom_blocklists?;
-    # A collection of binary filtering outcomes for configured custom topics.
-    AzureContentFilterCustomTopicResult custom_topics?;
-    # If present, details about an error that prevented content filtering from completing its evaluation.
-    AzureContentFilterResultForChoice_error 'error?;
-    # A detection result that describes user prompt injection attacks, where malicious users deliberately exploit
-    # system vulnerabilities to elicit unauthorized behavior from the LLM. This could lead to inappropriate content
-    # generation or violations of system-imposed restrictions.
-    AzureContentFilterDetectionResult jailbreak;
-    # A detection result that describes attacks on systems powered by Generative AI models that can happen every time
-    # an application processes information that wasn’t directly authored by either the developer of the application or
-    # the user.
-    AzureContentFilterDetectionResult indirect_attack;
+public type OpenAIChatCompletionMessageToolCallChunkFunction record {
+    string name?;
+    string arguments?;
 };
 
-public type OpenAI\.CreateChatCompletionResponseChoices record {
-    "stop"|"length"|"tool_calls"|"content_filter"|"function_call" finish_reason;
+# Constrains the tools available to the model to a pre-defined set.
+public type OpenAIChatCompletionAllowedToolsChoice record {
+    # Allowed tool configuration type. Always `allowed_tools`.
+    "allowed_tools" 'type;
+    # Constrains the tools available to the model to a pre-defined set.
+    OpenAIChatCompletionAllowedTools allowed_tools;
+};
+
+# A chat completion delta generated by streamed model responses.
+public type OpenAIChatCompletionStreamResponseDelta record {
+    string? content?;
+    # Deprecated and replaced by `tool_calls`. The name and arguments of a function that should be called, as generated by the model.
+    # 
+    # # Deprecated
+    @deprecated
+    OpenAIChatCompletionStreamResponseDeltaFunctionCall function_call?;
+    OpenAIChatCompletionMessageToolCallChunk[] tool_calls?;
+    # The role of the author of this message.
+    "developer"|"system"|"user"|"assistant"|"tool" role?;
+    string? refusal?;
+    # An Azure-specific extension property containing generated reasoning content from supported models.
+    string reasoning_content?;
+};
+
+public type OpenAICreateChatCompletionStreamResponseChoices record {
+    # A chat completion delta generated by streamed model responses.
+    OpenAIChatCompletionStreamResponseDelta delta;
+    OpenAICreateChatCompletionStreamResponseChoicesLogprobs logprobs?;
+    "stop"|"length"|"tool_calls"|"content_filter"|"function_call"? finish_reason;
     int index;
-    OpenAI\.ChatCompletionResponseMessage message;
-    OpenAI\.CreateChatCompletionResponseChoicesLogprobs logprobs;
-    AzureContentFilterResultForChoice content_filter_results?;
+};
+
+# An object specifying the format that the model must output.
+# Setting to `{ "type": "json_schema", "json_schema": {...} }` enables
+# Structured Outputs which ensures the model will match your supplied JSON
+# schema. Learn more in the [Structured Outputs
+# guide](/docs/guides/structured-outputs).
+# Setting to `{ "type": "json_object" }` enables the older JSON mode, which
+# ensures the message the model generates is valid JSON. Using `json_schema`
+# is preferred for models that support it.
+public type OpenAICreateChatCompletionRequestResponseFormat record {
+    OpenAICreateChatCompletionRequestResponseFormatType 'type;
+};
+
+# Not supported with latest reasoning models `o3` and `o4-mini`.
+# Up to 4 sequences where the API will stop generating further tokens. The
+# returned text will not contain the stop sequence.
+public type OpenAIStopConfiguration string|string[];
+
+public type OpenAIChatCompletionStreamResponseDeltaFunctionCall record {
+    string arguments?;
+    string name?;
+};
+
+# Specifies a tool the model should use. Use to force the model to call a specific custom tool.
+public type OpenAIChatCompletionNamedToolChoiceCustom record {
+    # For custom tool calling, the type is always `custom`.
+    "custom" 'type;
+    OpenAIChatCompletionNamedToolChoiceCustomCustom custom;
 };
 
 # User security context contains several parameters that describe the application itself, and the end user that interacts with the application. These fields assist your security operations teams to investigate and mitigate security incidents by providing a comprehensive approach to protecting your AI applications. [Learn more](https://aka.ms/TP4AI/Documentation/EndUserContext) about protecting AI applications using Microsoft Defender for Cloud.
@@ -127,18 +130,6 @@ public type AzureUserSecurityContext record {
     # Captures the original client's IP address.
     string source_ip?;
 };
-
-# If available, the citation details describing the associated license and its location.
-public type AzureContentFilterResultForChoice_protected_material_code_citation record {
-    # The name or identifier of the license associated with the detection.
-    string license?;
-    # The URL associated with the license.
-    string URL?;
-};
-
-public type OpenAI\.ResponseModalities ("text"|"audio")[]?;
-
-public type OpenAI\.ChatCompletionMessageToolCallsItem (OpenAI\.ChatCompletionMessageToolCall|OpenAI\.ChatCompletionMessageCustomToolCall)[];
 
 # Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.
 @display {label: "Connection Config"}
@@ -184,11 +175,15 @@ public type ConnectionConfig record {|
     boolean laxDataBinding = true;
 |};
 
-public type OpenAI\.ChatCompletionRequestMessageType string|"developer"|"system"|"user"|"assistant"|"tool"|"function";
+public type OpenAICustomToolChatCompletionsCustomFormatText record {
+    "text" 'type;
+};
 
-public type OpenAI\.CustomToolChatCompletions record {
-    "custom" 'type;
-    OpenAI\.CustomToolChatCompletionsCustom custom;
+# Specifies a tool the model should use. Use to force the model to call a specific function.
+public type OpenAIChatCompletionNamedToolChoice record {
+    # For function calling, the type is always `function`.
+    "function" 'type;
+    OpenAIChatCompletionNamedToolChoiceFunction 'function;
 };
 
 public type AzureContentFilterCompletionTextSpanDetectionResult record {
@@ -200,32 +195,85 @@ public type AzureContentFilterCompletionTextSpanDetectionResult record {
     AzureContentFilterCompletionTextSpan[] details;
 };
 
-public type OpenAI\.ChatCompletionMessageToolCallChunk record {
-    int index;
-    string id?;
-    "function" 'type?;
-    OpenAI\.ChatCompletionMessageToolCallChunkFunction 'function?;
+public type OpenAIChatCompletionRequestMessageContentPartText record {
+    # The type of the content part.
+    "text" 'type;
+    # The text content.
+    string text;
 };
 
-public type OpenAI\.ChatCompletionResponseMessageAudio record {
+# Static predicted output content, such as the content of a text file that is
+# being regenerated.
+public type OpenAIPredictionContent record {
+    # The type of the predicted content you want to provide. This type is
+    #   currently always `content`.
+    "content" 'type;
+    # The content that should be matched when generating a model response.
+    #   If generated tokens would match this content, the entire model response
+    #   can be returned much more quickly.
+    string|OpenAIChatCompletionRequestMessageContentPartText[] content;
+};
+
+# If present, details about an error that prevented content filtering from completing its evaluation.
+public type AzureContentFilterResultForChoiceError record {
+    # A distinct, machine-readable code associated with the error.
+    int:Signed32 code;
+    # A human-readable message associated with the error.
+    string message;
+};
+
+# The content filter category details for the result.
+public type AzureContentFilterResultForPromptContentFilterResults record {
+    # A content filter category for language related to anatomical organs and genitals, romantic relationships, acts
+    # portrayed in erotic or affectionate terms, pregnancy, physical sexual acts, including those portrayed as an
+    # assault or a forced sexual violent act against one's will, prostitution, pornography, and abuse.
+    AzureContentFilterSeverityResult sexual?;
+    # A content filter category that can refer to any content that attacks or uses pejorative or discriminatory
+    # language with reference to a person or identity group based on certain differentiating attributes of these groups
+    # including but not limited to race, ethnicity, nationality, gender identity and expression, sexual orientation,
+    # religion, immigration status, ability status, personal appearance, and body size.
+    AzureContentFilterSeverityResult hate?;
+    # A content filter category for language related to physical actions intended to hurt, injure, damage, or kill
+    # someone or something; describes weapons, guns and related entities, such as manufactures, associations,
+    # legislation, and so on.
+    AzureContentFilterSeverityResult violence?;
+    # A content filter category that describes language related to physical actions intended to purposely hurt, injure,
+    # damage one's body or kill oneself.
+    AzureContentFilterSeverityResult self_harm?;
+    # A detection result that identifies whether crude, vulgar, or otherwise objection language is present in the
+    # content.
+    AzureContentFilterDetectionResult profanity?;
+    # A collection of binary filtering outcomes for configured custom blocklists.
+    AzureContentFilterBlocklistResult custom_blocklists?;
+    # A collection of binary filtering outcomes for configured custom topics.
+    AzureContentFilterCustomTopicResult custom_topics?;
+    # If present, details about an error that prevented content filtering from completing its evaluation.
+    AzureContentFilterResultForChoiceError 'error?;
+    # A detection result that describes user prompt injection attacks, where malicious users deliberately exploit
+    # system vulnerabilities to elicit unauthorized behavior from the LLM. This could lead to inappropriate content
+    # generation or violations of system-imposed restrictions.
+    AzureContentFilterDetectionResult jailbreak;
+    # A detection result that describes attacks on systems powered by Generative AI models that can happen every time
+    # an application processes information that wasn’t directly authored by either the developer of the application or
+    # the user.
+    AzureContentFilterDetectionResult indirect_attack;
+};
+
+# A call to a custom tool created by the model.
+public type OpenAIChatCompletionMessageCustomToolCall record {
+    # The ID of the tool call.
     string id;
-    int expires_at;
-    string data;
-    string transcript;
+    # The type of the tool. Always `custom`.
+    "custom" 'type;
+    # The custom tool that the model called.
+    OpenAIChatCompletionMessageCustomToolCallCustom custom;
 };
 
-public type OpenAI\.StopConfiguration string|string[];
-
-public type AzureContentFilterCustomTopicResult_details record {
+public type AzureContentFilterCustomTopicResultDetails record {
     # A value indicating whether the topic is detected.
     boolean detected;
     # The ID of the custom topic evaluated.
     string id;
-};
-
-public type OpenAI\.ChatCompletionRequestMessageContentPartText record {
-    "text" 'type;
-    string text;
 };
 
 # A labeled content filter result item that indicates whether the content was detected and whether the content was
@@ -237,31 +285,33 @@ public type AzureContentFilterDetectionResult record {
     boolean detected;
 };
 
-# A detection result that describes a match against licensed code or other protected source material.
-public type AzureContentFilterResultForChoice_protected_material_code record {
-    # Whether the content detection resulted in a content filtering action.
-    boolean filtered;
-    # Whether the labeled content category was detected in the content.
-    boolean detected;
-    # If available, the citation details describing the associated license and its location.
-    AzureContentFilterResultForChoice_protected_material_code_citation citation?;
+public type OpenAIChatCompletionResponseMessageAnnotations record {
+    "url_citation" 'type;
+    OpenAIChatCompletionResponseMessageAnnotationsUrlCitation url_citation;
 };
 
-public type OpenAI\.ChatCompletionStreamOptions record {
-    boolean include_usage?;
-    boolean include_obfuscation?;
+# Constrains effort on reasoning for
+# [reasoning models](https://platform.openai.com/docs/guides/reasoning).
+# Currently supported values are `none`, `minimal`, `low`, `medium`, `high`, and `xhigh`. Reducing
+# reasoning effort can result in faster responses and fewer tokens used
+# on reasoning in a response.
+# - `gpt-5.1` defaults to `none`, which does not perform reasoning. The supported reasoning values for `gpt-5.1` are `none`, `low`, `medium`, and `high`. Tool calls are supported for all reasoning values in gpt-5.1.
+# - All models before `gpt-5.1` default to `medium` reasoning effort, and do not support `none`.
+# - The `gpt-5-pro` model defaults to (and only supports) `high` reasoning effort.
+# - `xhigh` is supported for all models after `gpt-5.1-codex-max`.
+public type OpenAIReasoningEffort "none"|"minimal"|"low"|"medium"|"high"|"xhigh"?;
+
+public type OpenAICustomToolChatCompletionsCustomFormatGrammarGrammar record {
+    string definition;
+    "lark"|"regex" syntax;
 };
 
-public type OpenAI\.ChatCompletionMessageCustomToolCallCustom record {
-    string name;
-    string input;
-};
-
-public type OpenAI\.ChatCompletionToolChoiceOption "none"|"auto"|"required"|OpenAI\.ChatCompletionAllowedToolsChoice|OpenAI\.ChatCompletionNamedToolChoice|OpenAI\.ChatCompletionNamedToolChoiceCustom;
-
-public type OpenAI\.ChatCompletionAllowedTools record {
-    "auto"|"required" mode;
-    record {}[] tools;
+# Set of 16 key-value pairs that can be attached to an object. This can be
+# useful for storing additional information about the object in a structured
+# format, and querying for objects via API or the dashboard.
+# Keys are strings with a maximum length of 64 characters. Values are strings
+# with a maximum length of 512 characters.
+public type OpenAIMetadata record {
 };
 
 # A content filter result for a single response item produced by a generative AI system.
@@ -290,31 +340,47 @@ public type AzureContentFilterResultForChoice record {
     # A collection of binary filtering outcomes for configured custom topics.
     AzureContentFilterCustomTopicResult custom_topics?;
     # If present, details about an error that prevented content filtering from completing its evaluation.
-    AzureContentFilterResultForChoice_error 'error?;
+    AzureContentFilterResultForChoiceError 'error?;
     # A detection result that describes a match against text protected under copyright or other status.
     AzureContentFilterDetectionResult protected_material_text?;
     # A detection result that describes a match against licensed code or other protected source material.
-    AzureContentFilterResultForChoice_protected_material_code protected_material_code?;
+    AzureContentFilterResultForChoiceProtectedMaterialCode protected_material_code?;
     AzureContentFilterCompletionTextSpanDetectionResult ungrounded_material?;
     # A detection result that describes matches against Personal Identifiable Information with configurable subcategories.
     AzureContentFilterPersonallyIdentifiableInformationResult personally_identifiable_information?;
 };
 
-public type OpenAI\.CreateChatCompletionRequestResponseFormat record {
-    OpenAI\.CreateChatCompletionRequestResponseFormatType 'type;
+# Constrains the tools available to the model to a pre-defined set.
+public type OpenAIChatCompletionAllowedTools record {
+    # Constrains the tools available to the model to a pre-defined set.
+    #   `auto` allows the model to pick from among the allowed tools and generate a
+    #   message.
+    #   `required` requires the model to call one or more of the allowed tools.
+    "auto"|"required" mode;
+    # A list of tool definitions that the model should be allowed to call.
+    #   For the Chat Completions API, the list of tool definitions might look like:
+    #   ```json
+    #   [
+    #     { "type": "function", "function": { "name": "get_weather" } },
+    #     { "type": "function", "function": { "name": "get_time" } }
+    #   ]
+    #   ```
+    record {}[] tools;
 };
 
-public type OpenAI\.VoiceIdsShared string|"alloy"|"ash"|"ballad"|"coral"|"echo"|"sage"|"shimmer"|"verse"|"marin"|"cedar";
-
-public type OpenAI\.ChatCompletionMessageToolCallFunction record {
-    string name;
-    string arguments;
+public type OpenAICustomToolChatCompletionsCustomFormatGrammar record {
+    "grammar" 'type;
+    OpenAICustomToolChatCompletionsCustomFormatGrammarGrammar grammar;
 };
 
-public type OpenAI\.ChatCompletionFunctions record {
-    string description?;
-    string name;
-    OpenAI\.FunctionParameters parameters?;
+# Constrains the verbosity of the model's response. Lower values will result in
+# more concise responses, while higher values will result in more verbose responses.
+# Currently supported values are `low`, `medium`, and `high`.
+public type OpenAIVerbosity "low"|"medium"|"high"?;
+
+public type OpenAICreateChatCompletionResponseChoicesLogprobs record {
+    OpenAIChatCompletionTokenLogprob[]? content;
+    OpenAIChatCompletionTokenLogprob[]? refusal;
 };
 
 # A content filter result associated with a single input prompt item into a generative AI system.
@@ -322,20 +388,16 @@ public type AzureContentFilterResultForPrompt record {
     # The index of the input prompt associated with the accompanying content filter result categories.
     int:Signed32 prompt_index?;
     # The content filter category details for the result.
-    AzureContentFilterResultForPrompt_content_filter_results content_filter_results?;
+    AzureContentFilterResultForPromptContentFilterResults content_filter_results?;
 };
 
-public type AzureContentFilterBlocklistResult_details record {
-    # A value indicating whether the blocklist produced a filtering action.
-    boolean filtered;
-    # The ID of the custom blocklist evaluated.
-    string id;
+public type OpenAIChatCompletionResponseMessageFunctionCall record {
+    string arguments;
+    string name;
 };
 
-public type OpenAI\.CustomToolChatCompletionsCustomFormatGrammarGrammar record {
-    string definition;
-    "lark"|"regex" syntax;
-};
+# A built-in voice name or a custom voice reference.
+public type OpenAIVoiceIdsOrCustomVoice OpenAIVoiceIdsShared|record {string id;};
 
 # Provides API key configurations needed when communicating with a remote HTTP endpoint.
 public type ApiKeysConfig record {|
@@ -343,21 +405,51 @@ public type ApiKeysConfig record {|
     string authorization;
 |};
 
-public type OpenAI\.PredictionContent record {
-    "content" 'type;
-    string|OpenAI\.ChatCompletionRequestMessageContentPartText[] content;
+public type OpenAICreateChatCompletionStreamResponseChoicesLogprobs record {
+    OpenAIChatCompletionTokenLogprob[]? content;
+    OpenAIChatCompletionTokenLogprob[]? refusal;
 };
 
-public type OpenAI\.CreateChatCompletionResponseChoicesLogprobs record {
-    OpenAI\.ChatCompletionTokenLogprob[]? content;
-    OpenAI\.ChatCompletionTokenLogprob[]? refusal;
-};
-
-public type OpenAI\.CreateChatCompletionStreamResponseChoices record {
-    OpenAI\.ChatCompletionStreamResponseDelta delta;
-    OpenAI\.CreateChatCompletionStreamResponseChoicesLogprobs logprobs?;
-    "stop"|"length"|"tool_calls"|"content_filter"|"function_call"? finish_reason;
+public type OpenAICreateChatCompletionResponseChoices record {
+    "stop"|"length"|"tool_calls"|"content_filter"|"function_call" finish_reason;
     int index;
+    # If the audio output modality is requested, this object contains data
+    # about the audio response from the model.
+    OpenAIChatCompletionResponseMessage message;
+    OpenAICreateChatCompletionResponseChoicesLogprobs logprobs;
+    # A content filter result for a single response item produced by a generative AI system.
+    AzureContentFilterResultForChoice content_filter_results?;
+};
+
+public type OpenAIChatCompletionRequestMessage record {
+    OpenAIChatCompletionRequestMessageType role;
+};
+
+public type OpenAICompletionUsagePromptTokensDetails record {
+    int audio_tokens?;
+    int cached_tokens?;
+};
+
+# If available, the citation details describing the associated license and its location.
+public type AzureContentFilterResultForChoiceProtectedMaterialCodeCitation record {
+    # The name or identifier of the license associated with the detection.
+    string license?;
+    # The URL associated with the license.
+    string URL?;
+};
+
+# Usage statistics for the completion request.
+public type OpenAICompletionUsage record {
+    # Number of tokens in the generated completion.
+    int completion_tokens;
+    # Number of tokens in the prompt.
+    int prompt_tokens;
+    # Total number of tokens used in the request (prompt + completion).
+    int total_tokens;
+    # Breakdown of tokens used in a completion.
+    OpenAICompletionUsageCompletionTokensDetails completion_tokens_details?;
+    # Breakdown of tokens used in the prompt.
+    OpenAICompletionUsagePromptTokensDetails prompt_tokens_details?;
 };
 
 # A collection of true/false filtering results for configured custom topics.
@@ -365,32 +457,81 @@ public type AzureContentFilterCustomTopicResult record {
     # A value indicating whether any of the detailed topics resulted in a filtering action.
     boolean filtered;
     # The pairs of individual topic IDs and whether they are detected.
-    AzureContentFilterCustomTopicResult_details[] details?;
+    AzureContentFilterCustomTopicResultDetails[] details?;
 };
 
-public type OpenAI\.ChatCompletionResponseMessageFunctionCall record {
-    string arguments;
-    string name;
-};
+public type InlineResponse200 record {string id; OpenAICreateChatCompletionResponseChoices[] choices; int created; string model; string system_fingerprint?; "chat.completion" 'object; OpenAICompletionUsage usage?; InlineResponse200PromptFilterResults[] prompt_filter_results?;}|record {string id; OpenAICreateChatCompletionStreamResponseChoices[] choices; int created; string model; string system_fingerprint?; "chat.completion.chunk" 'object; OpenAICompletionUsage usage?; OpenAIChatCompletionStreamResponseDelta delta?; AzureContentFilterResultForChoice content_filter_results?;};
 
-public type OpenAI\.ChatCompletionTokenLogprob record {
+# Output types that you would like the model to generate.
+# Most models are capable of generating text, which is the default:
+# `["text"]`
+# The `gpt-4o-audio-preview` model can also be used to
+# [generate audio](/docs/guides/audio). To request that this model generate
+# both text and audio responses, you can use:
+# `["text", "audio"]`
+public type OpenAIResponseModalities ("text"|"audio")[]?;
+
+public type OpenAIChatCompletionTokenLogprobTopLogprobs record {
     string token;
     decimal logprob;
     int[]? bytes;
-    OpenAI\.ChatCompletionTokenLogprobTopLogprobs[] top_logprobs;
 };
 
-public type OpenAI\.Verbosity "low"|"medium"|"high"?;
+public type OpenAICreateChatCompletionRequestResponseFormatType string|"text"|"json_schema"|"json_object";
 
-public type OpenAI\.ChatCompletionResponseMessage record {
-    string? content;
-    string? refusal;
-    OpenAI\.ChatCompletionMessageToolCallsItem tool_calls?;
-    OpenAI\.ChatCompletionResponseMessageAnnotations[] annotations?;
-    "assistant" role;
-    OpenAI\.ChatCompletionResponseMessageFunctionCall function_call?;
-    OpenAI\.ChatCompletionResponseMessageAudio audio?;
-    string reasoning_content?;
+public type OpenAIChatCompletionResponseMessageAnnotationsUrlCitation record {
+    int end_index;
+    int start_index;
+    string url;
+    string title;
+};
+
+public type OpenAIChatCompletionMessageToolCallFunction record {
+    string name;
+    string arguments;
+};
+
+public type OpenAIChatCompletionMessageCustomToolCallCustom record {
+    string name;
+    string input;
+};
+
+public type OpenAIFunctionObject record {
+    # A description of what the function does, used by the model to choose when and how to call the function.
+    string description?;
+    # The name of the function to be called. Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.
+    string name;
+    # The parameters the functions accepts, described as a JSON Schema object. See the [guide](/docs/guides/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format.
+    # Omitting `parameters` defines a function with an empty parameter list.
+    OpenAIFunctionParameters parameters?;
+    boolean? strict?;
+};
+
+# A detection result that describes a match against licensed code or other protected source material.
+public type AzureContentFilterResultForChoiceProtectedMaterialCode record {
+    # Whether the content detection resulted in a content filtering action.
+    boolean filtered;
+    # Whether the labeled content category was detected in the content.
+    boolean detected;
+    # If available, the citation details describing the associated license and its location.
+    AzureContentFilterResultForChoiceProtectedMaterialCodeCitation citation?;
+};
+
+public type OpenAIChatCompletionTokenLogprob record {
+    # The token.
+    string token;
+    # The log probability of this token, if it is within the top 20 most likely tokens. Otherwise, the value `-9999.0` is used to signify that the token is very unlikely.
+    decimal logprob;
+    int[]? bytes;
+    # List of the most likely tokens and their log probability, at this token position. The number of entries may be fewer than the requested `top_logprobs`.
+    OpenAIChatCompletionTokenLogprobTopLogprobs[] top_logprobs;
+};
+
+public type AzureContentFilterBlocklistResultDetails record {
+    # A value indicating whether the blocklist produced a filtering action.
+    boolean filtered;
+    # The ID of the custom blocklist evaluated.
+    string id;
 };
 
 # A representation of a span of completion text as used by Azure OpenAI content filter results.
@@ -401,70 +542,68 @@ public type AzureContentFilterCompletionTextSpan record {
     int:Signed32 completion_end_offset;
 };
 
-public type inline_response_200 record {string id; OpenAI\.CreateChatCompletionResponseChoices[] choices; int created; string model; string system_fingerprint?; "chat.completion" 'object; OpenAI\.CompletionUsage usage?; inline_response_200_prompt_filter_results[] prompt_filter_results?;}|record {string id; OpenAI\.CreateChatCompletionStreamResponseChoices[] choices; int created; string model; string system_fingerprint?; "chat.completion.chunk" 'object; OpenAI\.CompletionUsage usage?; OpenAI\.ChatCompletionStreamResponseDelta delta?; AzureContentFilterResultForChoice content_filter_results?;};
-
-public type OpenAI\.ChatCompletionTokenLogprobTopLogprobs record {
-    string token;
-    decimal logprob;
-    int[]? bytes;
+# If the audio output modality is requested, this object contains data
+# about the audio response from the model.
+public type OpenAIChatCompletionResponseMessage record {
+    string? content;
+    string? refusal;
+    # The tool calls generated by the model, such as function calls.
+    OpenAIChatCompletionMessageToolCallsItem tool_calls?;
+    # Annotations for the message, when applicable, as when using the
+    #   [web search tool](/docs/guides/tools-web-search?api-mode=chat).
+    OpenAIChatCompletionResponseMessageAnnotations[] annotations?;
+    # The role of the author of this message.
+    "assistant" role;
+    # Deprecated and replaced by `tool_calls`. The name and arguments of a function that should be called, as generated by the model.
+    # 
+    # # Deprecated
+    @deprecated
+    OpenAIChatCompletionResponseMessageFunctionCall function_call?;
+    OpenAIChatCompletionResponseMessageAudio audio?;
+    # An Azure-specific extension property containing generated reasoning content from supported models.
+    string reasoning_content?;
 };
 
-public type OpenAI\.ChatCompletionMessageToolCall record {
-    string id;
-    "function" 'type;
-    OpenAI\.ChatCompletionMessageToolCallFunction 'function;
-};
-
-# If present, details about an error that prevented content filtering from completing its evaluation.
-public type AzureContentFilterResultForChoice_error record {
-    # A distinct, machine-readable code associated with the error.
-    int:Signed32 code;
-    # A human-readable message associated with the error.
-    string message;
-};
-
-public type OpenAI\.CreateChatCompletionStreamResponseChoicesLogprobs record {
-    OpenAI\.ChatCompletionTokenLogprob[]? content;
-    OpenAI\.ChatCompletionTokenLogprob[]? refusal;
-};
-
-public type OpenAI\.FunctionParameters record {
-};
-
-public type OpenAI\.ChatCompletionFunctionCallOption record {
-    string name;
-};
-
-public type OpenAI\.CustomToolChatCompletionsCustomFormatText record {
-    "text" 'type;
-};
-
-public type OpenAI\.ReasoningEffort "none"|"minimal"|"low"|"medium"|"high"|"xhigh"?;
+# Controls which (if any) tool is called by the model.
+# `none` means the model will not call any tool and instead generates a message.
+# `auto` means the model can pick between generating a message or calling one or more tools.
+# `required` means the model must call one or more tools.
+# Specifying a particular tool via `{"type": "function", "function": {"name": "my_function"}}` forces the model to call that tool.
+# `none` is the default when no tools are present. `auto` is the default if tools are present.
+public type OpenAIChatCompletionToolChoiceOption "none"|"auto"|"required"|OpenAIChatCompletionAllowedToolsChoice|OpenAIChatCompletionNamedToolChoice|OpenAIChatCompletionNamedToolChoiceCustom;
 
 # A content filter detection result for Personally Identifiable Information that includes harm extensions.
 public type AzureContentFilterPersonallyIdentifiableInformationResult AzureContentFilterDetectionResult;
 
-public type OpenAI\.ChatCompletionNamedToolChoiceCustomCustom record {
-    string name;
-};
-
-public type OpenAI\.ChatCompletionTool record {
+# A function tool that can be used to generate a response.
+public type OpenAIChatCompletionTool record {
+    # The type of the tool. Currently, only `function` is supported.
     "function" 'type;
-    OpenAI\.FunctionObject 'function;
+    OpenAIFunctionObject 'function;
 };
 
-public type inline_response_200_prompt_filter_results record {
+# A call to a function tool created by the model.
+public type OpenAIChatCompletionMessageToolCall record {
+    # The ID of the tool call.
+    string id;
+    # The type of the tool. Currently, only `function` is supported.
+    "function" 'type;
+    # The function that the model called.
+    OpenAIChatCompletionMessageToolCallFunction 'function;
+};
+
+public type InlineResponse200PromptFilterResults record {
     # The index of the input prompt that this content filter result corresponds to.
     int:Signed32 prompt_index;
     # The content filter results associated with the indexed input prompt.
     AzureContentFilterResultForPrompt content_filter_results;
 };
 
-public type OpenAI\.Metadata record {
-};
-
-public type OpenAI\.ChatCompletionRequestMessage record {
-    OpenAI\.ChatCompletionRequestMessageType role;
+public type OpenAIChatCompletionResponseMessageAudio record {
+    string id;
+    int expires_at;
+    string data;
+    string transcript;
 };
 
 # A labeled content filter result item that indicates whether the content was filtered and what the qualitative
@@ -476,18 +615,79 @@ public type AzureContentFilterSeverityResult record {
     "safe"|"low"|"medium"|"high" severity;
 };
 
-public type OpenAI\.ChatCompletionResponseMessageAnnotations record {
-    "url_citation" 'type;
-    OpenAI\.ChatCompletionResponseMessageAnnotationsUrlCitation url_citation;
+# A custom tool that processes input using a specified format.
+public type OpenAICustomToolChatCompletions record {
+    # The type of the custom tool. Always `custom`.
+    "custom" 'type;
+    # Properties of the custom tool.
+    OpenAICustomToolChatCompletionsCustom custom;
 };
 
-public type chat_completions_body record {
+public type OpenAIChatCompletionMessageToolCallChunk record {
+    int index;
+    # The ID of the tool call.
+    string id?;
+    # The type of the tool. Currently, only `function` is supported.
+    "function" 'type?;
+    OpenAIChatCompletionMessageToolCallChunkFunction 'function?;
+};
+
+@deprecated
+public type OpenAIChatCompletionFunctions record {
+    # A description of what the function does, used by the model to choose when and how to call the function.
+    string description?;
+    # The name of the function to be called. Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.
+    string name;
+    # The parameters the functions accepts, described as a JSON Schema object.
+    # See the [JSON Schema reference](https://json-schema.org/understanding-json-schema/)
+    # for documentation about the format.
+    # 
+    # Omitting `parameters` defines a function with an empty parameter list.
+    OpenAIFunctionParameters parameters?;
+};
+
+# A collection of true/false filtering results for configured custom blocklists.
+public type AzureContentFilterBlocklistResult record {
+    # A value indicating whether any of the detailed blocklists resulted in a filtering action.
+    boolean filtered;
+    # The pairs of individual blocklist IDs and whether they resulted in a filtering action.
+    AzureContentFilterBlocklistResultDetails[] details?;
+};
+
+public type OpenAICreateChatCompletionRequestAudio record {
+    # A built-in voice name or a custom voice reference.
+    OpenAIVoiceIdsOrCustomVoice voice;
+    "wav"|"aac"|"mp3"|"flac"|"opus"|"pcm16" format;
+};
+
+public type OpenAIVoiceIdsShared string|"alloy"|"ash"|"ballad"|"coral"|"echo"|"sage"|"shimmer"|"verse"|"marin"|"cedar";
+
+public type OpenAIChatCompletionNamedToolChoiceCustomCustom record {
+    string name;
+};
+
+public type OpenAIChatCompletionRequestMessageType string|"developer"|"system"|"user"|"assistant"|"tool"|"function";
+
+# Specifying a particular function via `{"name": "my_function"}` forces the model to call that function.
+public type OpenAIChatCompletionFunctionCallOption record {
+    # The name of the function to call.
+    string name;
+};
+
+public type OpenAICompletionUsageCompletionTokensDetails record {
+    int accepted_prediction_tokens?;
+    int audio_tokens?;
+    int reasoning_tokens?;
+    int rejected_prediction_tokens?;
+};
+
+public type ChatCompletionsBody record {
     # Set of 16 key-value pairs that can be attached to an object. This can be
     # useful for storing additional information about the object in a structured
     # format, and querying for objects via API or the dashboard.
     # Keys are strings with a maximum length of 64 characters. Values are strings
     # with a maximum length of 512 characters.
-    OpenAI\.Metadata metadata?;
+    OpenAIMetadata metadata?;
     int? top_logprobs?;
     decimal? temperature = 1;
     decimal? top_p = 1;
@@ -508,7 +708,7 @@ public type chat_completions_body record {
     # model you use, different message types (modalities) are supported,
     # like text, images, and audio.
     @constraint:Array {minLength: 1}
-    OpenAI\.ChatCompletionRequestMessage[] messages;
+    OpenAIChatCompletionRequestMessage[] messages;
     # Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI
     #   offers a wide range of models with different capabilities, performance
     #   characteristics, and price points. Refer to the [model guide](/docs/models)
@@ -521,11 +721,11 @@ public type chat_completions_body record {
     # [generate audio](/docs/guides/audio). To request that this model generate
     # both text and audio responses, you can use:
     # `["text", "audio"]`
-    OpenAI\.ResponseModalities? modalities?;
+    OpenAIResponseModalities? modalities?;
     # Constrains the verbosity of the model's response. Lower values will result in
     # more concise responses, while higher values will result in more verbose responses.
     # Currently supported values are `low`, `medium`, and `high`.
-    OpenAI\.Verbosity? verbosity?;
+    OpenAIVerbosity? verbosity?;
     # Constrains effort on reasoning for
     # [reasoning models](https://platform.openai.com/docs/guides/reasoning).
     # Currently supported values are `none`, `minimal`, `low`, `medium`, `high`, and `xhigh`. Reducing
@@ -535,7 +735,7 @@ public type chat_completions_body record {
     # - All models before `gpt-5.1` default to `medium` reasoning effort, and do not support `none`.
     # - The `gpt-5-pro` model defaults to (and only supports) `high` reasoning effort.
     # - `xhigh` is supported for all models after `gpt-5.1-codex-max`.
-    OpenAI\.ReasoningEffort? reasoning_effort?;
+    OpenAIReasoningEffort? reasoning_effort?;
     # An upper bound for the number of tokens that can be generated for a
     # completion, including visible output tokens and reasoning tokens.
     int? max_completion_tokens?;
@@ -563,8 +763,8 @@ public type chat_completions_body record {
     # request. Also note that the message content may be partially cut off if
     # `finish_reason="length"`, which indicates the generation exceeded
     # `max_tokens` or the conversation exceeded the max context length.
-    OpenAI\.CreateChatCompletionRequestResponseFormat response_format?;
-    OpenAI\.CreateChatCompletionRequestAudio audio?;
+    OpenAICreateChatCompletionRequestResponseFormat response_format?;
+    OpenAICreateChatCompletionRequestAudio audio?;
     # Whether or not to store the output of this chat completion request for
     # use in model distillation or evals products.
     boolean? store?;
@@ -574,7 +774,7 @@ public type chat_completions_body record {
     # Not supported with latest reasoning models `o3` and `o4-mini`.
     # Up to 4 sequences where the API will stop generating further tokens. The
     # returned text will not contain the stop sequence.
-    OpenAI\.StopConfiguration stop?;
+    OpenAIStopConfiguration stop?;
     # Modify the likelihood of specified tokens appearing in the completion.
     #   Accepts a JSON object that maps tokens (specified by their token ID in the
     #   tokenizer) to an associated bias value from -100 to 100. Mathematically,
@@ -600,7 +800,7 @@ public type chat_completions_body record {
     int? n = 1;
     # Static predicted output content, such as the content of a text file that is
     # being regenerated.
-    OpenAI\.PredictionContent prediction?;
+    OpenAIPredictionContent prediction?;
     # This feature is in Beta.
     #   If specified, our system will make a best effort to sample deterministically, such that repeated requests with the same `seed` and parameters should return the same result.
     #   Determinism is not guaranteed, and you should refer to the `system_fingerprint` response parameter to monitor changes in the backend.
@@ -609,18 +809,18 @@ public type chat_completions_body record {
     @deprecated
     int? seed?;
     # Options for streaming response. Only set this when you set `stream: true`.
-    OpenAI\.ChatCompletionStreamOptions stream_options?;
+    OpenAIChatCompletionStreamOptions stream_options?;
     # A list of tools the model may call. You can provide either
     #   [custom tools](/docs/guides/function-calling#custom-tools) or
     #   [function tools](/docs/guides/function-calling).
-    (OpenAI\.ChatCompletionTool|OpenAI\.CustomToolChatCompletions)[] tools?;
+    (OpenAIChatCompletionTool|OpenAICustomToolChatCompletions)[] tools?;
     # Controls which (if any) tool is called by the model.
     # `none` means the model will not call any tool and instead generates a message.
     # `auto` means the model can pick between generating a message or calling one or more tools.
     # `required` means the model must call one or more tools.
     # Specifying a particular tool via `{"type": "function", "function": {"name": "my_function"}}` forces the model to call that tool.
     # `none` is the default when no tools are present. `auto` is the default if tools are present.
-    OpenAI\.ChatCompletionToolChoiceOption tool_choice?;
+    OpenAIChatCompletionToolChoiceOption tool_choice?;
     # Whether to enable [parallel function calling](/docs/guides/function-calling#configuring-parallel-function-calling) during tool use.
     boolean parallel_tool_calls = true;
     # Deprecated in favor of `tool_choice`.
@@ -636,64 +836,20 @@ public type chat_completions_body record {
     # 
     # # Deprecated
     @deprecated
-    "none"|"auto"|OpenAI\.ChatCompletionFunctionCallOption function_call?;
+    "none"|"auto"|OpenAIChatCompletionFunctionCallOption function_call?;
     # Deprecated in favor of `tools`.
     #   A list of functions the model may generate JSON inputs for.
     # 
     # # Deprecated
     @constraint:Array {maxLength: 128, minLength: 1}
     @deprecated
-    OpenAI\.ChatCompletionFunctions[] functions?;
+    OpenAIChatCompletionFunctions[] functions?;
     # User security context contains several parameters that describe the application itself, and the end user that interacts with the application. These fields assist your security operations teams to investigate and mitigate security incidents by providing a comprehensive approach to protecting your AI applications. [Learn more](https://aka.ms/TP4AI/Documentation/EndUserContext) about protecting AI applications using Microsoft Defender for Cloud.
     AzureUserSecurityContext user_security_context?;
 };
 
-# A collection of true/false filtering results for configured custom blocklists.
-public type AzureContentFilterBlocklistResult record {
-    # A value indicating whether any of the detailed blocklists resulted in a filtering action.
-    boolean filtered;
-    # The pairs of individual blocklist IDs and whether they resulted in a filtering action.
-    AzureContentFilterBlocklistResult_details[] details?;
-};
-
-public type OpenAI\.ChatCompletionAllowedToolsChoice record {
-    "allowed_tools" 'type;
-    OpenAI\.ChatCompletionAllowedTools allowed_tools;
-};
-
-public type OpenAI\.CompletionUsageCompletionTokensDetails record {
-    int accepted_prediction_tokens?;
-    int audio_tokens?;
-    int reasoning_tokens?;
-    int rejected_prediction_tokens?;
-};
-
-public type OpenAI\.ChatCompletionStreamResponseDeltaFunctionCall record {
-    string arguments?;
-    string name?;
-};
-
-public type OpenAI\.CustomToolChatCompletionsCustom record {
+public type OpenAIChatCompletionNamedToolChoiceFunction record {
     string name;
-    string description?;
-    OpenAI\.CustomToolChatCompletionsCustomFormatText|OpenAI\.CustomToolChatCompletionsCustomFormatGrammar format?;
-};
-
-public type OpenAI\.CreateChatCompletionRequestResponseFormatType string|"text"|"json_schema"|"json_object";
-
-public type OpenAI\.ChatCompletionMessageToolCallChunkFunction record {
-    string name?;
-    string arguments?;
-};
-
-public type OpenAI\.ChatCompletionNamedToolChoiceCustom record {
-    "custom" 'type;
-    OpenAI\.ChatCompletionNamedToolChoiceCustomCustom custom;
-};
-
-public type OpenAI\.CompletionUsagePromptTokensDetails record {
-    int audio_tokens?;
-    int cached_tokens?;
 };
 
 # Represents the Queries record for the operation: createChatCompletion
@@ -703,11 +859,5 @@ public type CreateChatCompletionQueries record {
     AzureAIFoundryModelsApiVersion api\-version?;
 };
 
-public type OpenAI\.ChatCompletionStreamResponseDelta record {
-    string? content?;
-    OpenAI\.ChatCompletionStreamResponseDeltaFunctionCall function_call?;
-    OpenAI\.ChatCompletionMessageToolCallChunk[] tool_calls?;
-    "developer"|"system"|"user"|"assistant"|"tool" role?;
-    string? refusal?;
-    string reasoning_content?;
-};
+# The tool calls generated by the model, such as function calls.
+public type OpenAIChatCompletionMessageToolCallsItem (OpenAIChatCompletionMessageToolCall|OpenAIChatCompletionMessageCustomToolCall)[];

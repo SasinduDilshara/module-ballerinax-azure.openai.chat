@@ -28,7 +28,7 @@ public function main() returns error? {
     }, serviceUrl);
 
     // Define a function tool for the model to use
-    chat:OpenAI\.ChatCompletionTool weatherTool = {
+    chat:OpenAIChatCompletionTool weatherTool = {
         'type: "function",
         'function: {
             name: "get_current_weather",
@@ -51,7 +51,7 @@ public function main() returns error? {
     };
 
     // Create a chat completion request with tools
-    chat:chat_completions_body request = {
+    chat:ChatCompletionsBody request = {
         model: "gpt-4o-mini",
         messages: [
             {role: "user", "content": "What is the weather in Seattle?"}
@@ -59,19 +59,19 @@ public function main() returns error? {
         tools: [weatherTool]
     };
 
-    chat:inline_response_200 response = check azureOpenAIChat->/chat/completions.post(request);
+    chat:InlineResponse200 response = check azureOpenAIChat->/chat/completions.post(request);
 
-    record {string id; chat:OpenAI\.CreateChatCompletionResponseChoices[] choices; int created; string model; string system_fingerprint?; "chat.completion" 'object; chat:OpenAI\.CompletionUsage usage?; chat:inline_response_200_prompt_filter_results[] prompt_filter_results?;} chatResponse = check response.ensureType();
+    record {string id; chat:OpenAICreateChatCompletionResponseChoices[] choices; int created; string model; string system_fingerprint?; "chat.completion" 'object; chat:OpenAICompletionUsage usage?; chat:InlineResponse200PromptFilterResults[] prompt_filter_results?;} chatResponse = check response.ensureType();
 
     if chatResponse.choices.length() > 0 {
-        chat:OpenAI\.CreateChatCompletionResponseChoices choice = chatResponse.choices[0];
+        chat:OpenAICreateChatCompletionResponseChoices choice = chatResponse.choices[0];
         io:println("Finish reason: " + choice.finish_reason);
 
         // Check if the model wants to call a tool
-        chat:OpenAI\.ChatCompletionMessageToolCallsItem? toolCalls = choice.message.tool_calls;
-        if toolCalls is chat:OpenAI\.ChatCompletionMessageToolCallsItem {
+        chat:OpenAIChatCompletionMessageToolCallsItem? toolCalls = choice.message.tool_calls;
+        if toolCalls is chat:OpenAIChatCompletionMessageToolCallsItem {
             foreach var toolCall in toolCalls {
-                if toolCall is chat:OpenAI\.ChatCompletionMessageToolCall {
+                if toolCall is chat:OpenAIChatCompletionMessageToolCall {
                     io:println("Tool call - Function: " + toolCall.'function.name);
                     io:println("Arguments: " + toolCall.'function.arguments);
                 }

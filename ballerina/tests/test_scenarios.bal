@@ -27,7 +27,7 @@ import ballerina/test;
     groups: ["mock_tests"]
 }
 isolated function testRequestWithAllMessageAndContentTypes() returns error? {
-    OpenAI\.ChatCompletionRequestMessage[] messages = [
+    OpenAIChatCompletionRequestMessage[] messages = [
         {role: "developer", "content": "Be concise."},
         {role: "system", "content": "You are helpful."},
         {
@@ -49,7 +49,7 @@ isolated function testRequestWithAllMessageAndContentTypes() returns error? {
         {role: "function", "name": "lookup", "content": "function output"}
     ];
 
-    chat_completions_body request = {
+    ChatCompletionsBody request = {
         model: "gpt-4o-mini",
         messages,
         reasoning_effort: "high",
@@ -74,7 +74,7 @@ isolated function testRequestWithAllMessageAndContentTypes() returns error? {
         user_security_context: {application_name: "app", end_user_id: "u"}
     };
 
-    inline_response_200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
+    InlineResponse200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
     ChatCompletionResponse completion = check response.ensureType();
     test:assertTrue(completion.choices.length() > 0);
 }
@@ -86,33 +86,33 @@ isolated function testRequestWithAllMessageAndContentTypes() returns error? {
     groups: ["mock_tests"]
 }
 isolated function testRichResponseBinding() returns error? {
-    chat_completions_body request = {
+    ChatCompletionsBody request = {
         model: "gpt-4o-mini",
         messages: [{role: "user", "content": "Give me everything"}],
         user: "rich-response"
     };
 
-    inline_response_200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
+    InlineResponse200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
     ChatCompletionResponse completion = check response.ensureType();
 
-    inline_response_200_prompt_filter_results[]? promptFilters = completion.prompt_filter_results;
-    test:assertTrue(promptFilters is inline_response_200_prompt_filter_results[], "Expected prompt filter results");
+    InlineResponse200PromptFilterResults[]? promptFilters = completion.prompt_filter_results;
+    test:assertTrue(promptFilters is InlineResponse200PromptFilterResults[], "Expected prompt filter results");
 
-    OpenAI\.CreateChatCompletionResponseChoices choice = completion.choices[0];
+    OpenAICreateChatCompletionResponseChoices choice = completion.choices[0];
     test:assertEquals(choice.finish_reason, "tool_calls");
     test:assertTrue(choice.content_filter_results is AzureContentFilterResultForChoice, "Expected choice content filters");
-    test:assertTrue(choice.logprobs.content is OpenAI\.ChatCompletionTokenLogprob[], "Expected logprobs content");
+    test:assertTrue(choice.logprobs.content is OpenAIChatCompletionTokenLogprob[], "Expected logprobs content");
 
-    OpenAI\.ChatCompletionResponseMessage message = choice.message;
-    test:assertTrue(message.tool_calls is OpenAI\.ChatCompletionMessageToolCallsItem, "Expected tool calls");
-    test:assertTrue(message.function_call is OpenAI\.ChatCompletionResponseMessageFunctionCall, "Expected function call");
-    test:assertTrue(message.audio is OpenAI\.ChatCompletionResponseMessageAudio, "Expected audio output");
+    OpenAIChatCompletionResponseMessage message = choice.message;
+    test:assertTrue(message.tool_calls is OpenAIChatCompletionMessageToolCallsItem, "Expected tool calls");
+    test:assertTrue(message.function_call is OpenAIChatCompletionResponseMessageFunctionCall, "Expected function call");
+    test:assertTrue(message.audio is OpenAIChatCompletionResponseMessageAudio, "Expected audio output");
 
-    OpenAI\.CompletionUsage? usage = completion.usage;
-    test:assertTrue(usage is OpenAI\.CompletionUsage, "Expected usage");
-    if usage is OpenAI\.CompletionUsage {
-        test:assertTrue(usage.prompt_tokens_details is OpenAI\.CompletionUsagePromptTokensDetails);
-        test:assertTrue(usage.completion_tokens_details is OpenAI\.CompletionUsageCompletionTokensDetails);
+    OpenAICompletionUsage? usage = completion.usage;
+    test:assertTrue(usage is OpenAICompletionUsage, "Expected usage");
+    if usage is OpenAICompletionUsage {
+        test:assertTrue(usage.prompt_tokens_details is OpenAICompletionUsagePromptTokensDetails);
+        test:assertTrue(usage.completion_tokens_details is OpenAICompletionUsageCompletionTokensDetails);
         test:assertEquals(usage.total_tokens, 50);
     }
 }

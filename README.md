@@ -64,14 +64,14 @@ Now, you can utilize available connector operations.
 ```ballerina
 public function main() returns error? {
 
-    chat:chat_completions_body request = {
+    chat:ChatCompletionsBody request = {
         model: "gpt-4o-mini",
         messages: [
             {role: "user", "content": "What is the Ballerina programming language?"}
         ]
     };
 
-    chat:inline_response_200 response = check azureOpenAIChat->/chat/completions.post(request);
+    chat:InlineResponse200 response = check azureOpenAIChat->/chat/completions.post(request);
 }
 ```
 
