@@ -70,7 +70,7 @@ http:Service mockService = service object {
                                 }
                             ]
                         },
-                        "logprobs": {"content": null, "refusal": null},
+                        "logprobs": null,
                         "content_filter_results": {
                             "hate": {"filtered": false, "severity": "safe"},
                             "protected_material_text": {"filtered": false, "detected": false}
@@ -99,7 +99,7 @@ http:Service mockService = service object {
                         "content": "Mock choice " + i.toString(),
                         "refusal": null
                     },
-                    "logprobs": {"content": null, "refusal": null}
+                    "logprobs": null
                 });
             }
             return {
@@ -233,7 +233,7 @@ http:Service mockService = service object {
                         "sexual": {"filtered": false, "severity": "safe"},
                         "violence": {"filtered": false, "severity": "safe"}
                     },
-                    "logprobs": {"content": null, "refusal": null}
+                    "logprobs": null
                 }
             ],
             "created": 1723091495,

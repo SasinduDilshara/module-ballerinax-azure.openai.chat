@@ -101,7 +101,12 @@ isolated function testRichResponseBinding() returns error? {
     OpenAICreateChatCompletionResponseChoices choice = completion.choices[0];
     test:assertEquals(choice.finish_reason, "tool_calls");
     test:assertTrue(choice.content_filter_results is AzureContentFilterResultForChoice, "Expected choice content filters");
-    test:assertTrue(choice.logprobs.content is OpenAIChatCompletionTokenLogprob[], "Expected logprobs content");
+    // `logprobs` is nullable; the rich response populates it, so narrow before use.
+    OpenAICreateChatCompletionResponseChoicesLogprobs? logprobs = choice.logprobs;
+    test:assertTrue(logprobs is OpenAICreateChatCompletionResponseChoicesLogprobs, "Expected logprobs");
+    if logprobs is OpenAICreateChatCompletionResponseChoicesLogprobs {
+        test:assertTrue(logprobs.content is OpenAIChatCompletionTokenLogprob[], "Expected logprobs content");
+    }
 
     OpenAIChatCompletionResponseMessage message = choice.message;
     test:assertTrue(message.tool_calls is OpenAIChatCompletionMessageToolCallsItem, "Expected tool calls");

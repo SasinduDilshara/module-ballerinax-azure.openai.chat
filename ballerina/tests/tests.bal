@@ -127,6 +127,9 @@ isolated function testChatCompletionWithNullableFieldsAsNil() returns error? {
 
     ChatCompletionResponse completion = check response.ensureType();
     test:assertTrue(completion.choices.length() > 0);
+    // When log probabilities are not requested, the choice's `logprobs` is null.
+    // This exercises the nullable `logprobs` field.
+    test:assertTrue(completion.choices[0].logprobs is (), "Expected null logprobs when not requested");
     OpenAICompletionUsage? usage = completion.usage;
     test:assertTrue(usage is OpenAICompletionUsage, "Expected usage statistics");
     if usage is OpenAICompletionUsage {

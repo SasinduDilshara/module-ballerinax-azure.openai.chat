@@ -923,7 +923,8 @@ components:
         message:
           $ref: '#/components/schemas/OpenAIChatCompletionResponseMessage'
         logprobs:
-          $ref: '#/components/schemas/OpenAICreateChatCompletionResponseChoicesLogprobs'
+          allOf:
+          - $ref: '#/components/schemas/OpenAICreateChatCompletionResponseChoicesLogprobs'
           nullable: true
         content_filter_results:
           $ref: '#/components/schemas/AzureContentFilterResultForChoice'

@@ -67,6 +67,28 @@ These changes are done in order to improve the overall usability, and as workaro
       - Extracted the named inline schemas into components with UpperCamelCase names (`chat_completions_body` → `ChatCompletionsBody`, `inline_response_200` → `InlineResponse200`, `AzureContentFilterResultForChoice_protected_material_code` → `AzureContentFilterResultForChoiceProtectedMaterialCode`) and updated every `$ref`. Structurally identical `error` objects continue to share a single `AzureContentFilterResultForChoiceError` type.
    - **Reason**: Ballerina type names must be valid UpperCamelCase identifiers. Dots, underscores, and lowercase starts force backslash-escaped or non-idiomatic type names, which hurts the connector's usability.
 
+9. **Made the nullable `logprobs` `$ref` property actually nullable via `allOf`**:
+
+   - **Changed Schemas**: `OpenAICreateChatCompletionResponseChoices` — the `logprobs` property.
+   - **Original**: A `$ref` with a sibling `nullable: true`:
+
+     ```yaml
+     logprobs:
+       $ref: '#/components/schemas/OpenAICreateChatCompletionResponseChoicesLogprobs'
+       nullable: true
+     ```
+
+   - **Updated**: Moved the `$ref` under an `allOf` so the sibling `nullable: true` is honored:
+
+     ```yaml
+     logprobs:
+       allOf:
+       - $ref: '#/components/schemas/OpenAICreateChatCompletionResponseChoicesLogprobs'
+       nullable: true
+     ```
+
+   - **Reason**: In OpenAPI 3.0.0 a `$ref` overrides any sibling keywords, so the sibling `nullable: true` was ignored and the required `logprobs` field was generated as non-nullable (`OpenAICreateChatCompletionResponseChoicesLogprobs`). Azure returns `"logprobs": null` in every choice when log probabilities are not requested, so this required field must be nullable. Wrapping the `$ref` in `allOf` lets `nullable: true` apply, generating `OpenAICreateChatCompletionResponseChoicesLogprobs?`.
+
 ## OpenAPI cli command
 
 The following command was used to generate the Ballerina client from the OpenAPI specification. The command should be executed from the repository root directory.

@@ -416,7 +416,7 @@ public type OpenAICreateChatCompletionResponseChoices record {
     # If the audio output modality is requested, this object contains data
     # about the audio response from the model.
     OpenAIChatCompletionResponseMessage message;
-    OpenAICreateChatCompletionResponseChoicesLogprobs logprobs;
+    OpenAICreateChatCompletionResponseChoicesLogprobs? logprobs;
     # A content filter result for a single response item produced by a generative AI system.
     AzureContentFilterResultForChoice content_filter_results?;
 };
