@@ -5,8 +5,8 @@
 To run the tests against the live Azure OpenAI Chat Completions API you need:
 
 - An Azure OpenAI resource with a deployed chat model.
-- The endpoint URL of the resource (e.g. `https://<resource-name>.openai.azure.com/openai`).
-- Either a bearer token or an API key, and the deployment id of the model.
+- The endpoint URL of the resource (e.g. `https://<resource-name>.openai.azure.com/openai/v1`).
+- Either a bearer token or an API key.
 
 To obtain these, refer to the [Ballerina Azure OpenAI Chat Connector](https://github.com/ballerina-platform/module-ballerinax-azure.openai.chat/blob/main/ballerina/Module.md).
 
@@ -70,8 +70,9 @@ Create a `Config.toml` file in the `tests` directory and add your authentication
 isLiveServer = true
 token = "<your-azure-openai-api-token>"
 serviceUrl = "<your-azure-openai-endpoint-url>"
-deploymentId = "<your-chat-model-deployment-id>"
 ```
+
+Alternatively, to test the API key authentication path against a live server, provide `apiKey` instead of (or in addition to) `token`.
 
 ### Using Environment Variables
 
@@ -83,7 +84,8 @@ For Linux or macOS:
 export IS_LIVE_SERVER=true
 export AZURE_OPENAI_TOKEN="<your-azure-openai-api-token>"
 export AZURE_OPENAI_SERVICE_URL="<your-azure-openai-endpoint-url>"
-export AZURE_OPENAI_DEPLOYMENT_ID="<your-chat-model-deployment-id>"
+# Optional: to exercise the API key authentication path.
+export AZURE_OPENAI_API_KEY="<your-azure-openai-api-key>"
 ```
 
 For Windows:
@@ -92,7 +94,7 @@ For Windows:
 setx IS_LIVE_SERVER true
 setx AZURE_OPENAI_TOKEN <your-azure-openai-api-token>
 setx AZURE_OPENAI_SERVICE_URL <your-azure-openai-endpoint-url>
-setx AZURE_OPENAI_DEPLOYMENT_ID <your-chat-model-deployment-id>
+setx AZURE_OPENAI_API_KEY <your-azure-openai-api-key>
 ```
 
 Then, run the following command to execute the tests:
