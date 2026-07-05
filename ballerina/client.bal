@@ -20,7 +20,6 @@
 import ballerina/data.jsondata;
 import ballerina/http;
 
-# Azure OpenAI APIs for completions and search
 public isolated client class Client {
     final http:Client clientEp;
     final readonly & ApiKeysConfig? apiKeyConfig;
@@ -29,7 +28,7 @@ public isolated client class Client {
     # + config - The configurations to be used when initializing the `connector` 
     # + serviceUrl - URL of the target service 
     # + return - An error if connector initialization failed 
-    public isolated function init(ConnectionConfig config, string serviceUrl = "https://your-resource-name.openai.azure.com/openai") returns error? {
+    public isolated function init(ConnectionConfig config, string serviceUrl) returns error? {
         http:ClientConfiguration httpClientConfig = {httpVersion: config.httpVersion, http1Settings: config.http1Settings, http2Settings: config.http2Settings, timeout: config.timeout, forwarded: config.forwarded, followRedirects: config.followRedirects, poolConfig: config.poolConfig, cache: config.cache, compression: config.compression, circuitBreaker: config.circuitBreaker, retryConfig: config.retryConfig, cookieConfig: config.cookieConfig, responseLimits: config.responseLimits, secureSocket: config.secureSocket, proxy: config.proxy, socketConfig: config.socketConfig, validation: config.validation, laxDataBinding: config.laxDataBinding};
         if config.auth is ApiKeysConfig {
             self.apiKeyConfig = (<ApiKeysConfig>config.auth).cloneReadOnly();
@@ -40,16 +39,17 @@ public isolated client class Client {
         self.clientEp = check new (serviceUrl, httpClientConfig);
     }
 
-    # Creates a completion for the chat message
+    # Creates a chat completion.
     #
     # + headers - Headers to be sent with the request 
     # + queries - Queries to be sent with the request 
-    # + return - OK 
-    resource isolated function post deployments/[string deployment\-id]/chat/completions(createChatCompletionRequest payload, map<string|string[]> headers = {}, *ChatCompletionsCreateQueries queries) returns inline_response_200|error {
-        string resourcePath = string `/deployments/${getEncodedUri(deployment\-id)}/chat/completions`;
+    # + return - The request has succeeded. 
+    resource isolated function post chat/completions(chat_completions_body payload, map<string|string[]> headers = {}, *CreateChatCompletionQueries queries) returns inline_response_200|error {
+        string resourcePath = string `/chat/completions`;
         map<anydata> headerValues = {...headers};
         if self.apiKeyConfig is ApiKeysConfig {
             headerValues["api-key"] = self.apiKeyConfig?.api\-key;
+            headerValues["authorization"] = self.apiKeyConfig?.authorization;
         }
         resourcePath = resourcePath + check getPathForQueryParam(queries);
         map<string|string[]> httpHeaders = http:getHeaderMap(headerValues);

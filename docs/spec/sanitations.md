@@ -6,68 +6,55 @@ _Edition_: Swan Lake
 # Sanitation for OpenAPI specification
 
 This document records the sanitation done on top of the official OpenAPI specification from Azure AI Foundry Models Service.
-The OpenAPI specification is obtained from the [Azure REST API Specs](https://github.com/Azure/azure-rest-api-specs/blob/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/preview/2025-04-01-preview/inference.json).
+
+The OpenAPI specification is obtained from the [Azure REST API Specs](https://github.com/Azure/azure-rest-api-specs/blob/main/specification/ai/data-plane/OpenAI.v1/azure-v1-v1-generated.yaml).
 These changes are done in order to improve the overall usability, and as workarounds for some known language limitations.
 
-1. **Converted nullable type arrays to `nullable: true`**:
+1. **Extracted only Chat Completions endpoint from the full specification**:
+
+   - **Original**: Full Azure AI Foundry Models Service spec with all endpoints (batches, responses, files, etc.)
+   - **Updated**: Only the `/chat/completions` path and its related schemas are retained
+   - **Reason**: This connector module only covers the Chat Completions API. Including unrelated endpoints would generate unnecessary code.
+
+2. **Converted nullable type arrays to `nullable: true`**:
 
    - **Changed Schemas**: Multiple schemas throughout the specification
    - **Original**: `type: ["string", "null"]` (OpenAPI 3.1.x+ style)
    - **Updated**: `type: string` with `nullable: true`
    - **Reason**: Type arrays are not supported in OpenAPI 3.0.0. The `nullable: true` property is the 3.0.0 equivalent for expressing nullable types.
 
-2. **Removed `default: null` properties**:
+3. **Removed `default: null` properties**:
 
    - **Changed Schemas**: Multiple schemas including request and response types
    - **Original**: `default: null`
    - **Updated**: Removed the `default` parameter
    - **Reason**: Temporary workaround until the Ballerina OpenAPI tool supports OpenAPI Specification version v3.1.x+.
 
-3. **Converted `const` to `enum`**:
+4. **Converted `const` to `enum`**:
 
    - **Changed Schemas**: Multiple schemas with constant values
    - **Original**: `const: "value"`
    - **Updated**: `enum: ["value"]`
    - **Reason**: The `const` keyword is not supported in OpenAPI 3.0.0. Using `enum` with a single value achieves the same effect.
 
-4. **Converted `anyOf`/`oneOf` with null types**:
+5. **Converted `anyOf`/`oneOf` with null types**:
 
    - **Changed Schemas**: Multiple schemas using `anyOf`/`oneOf` with `{"type": "null"}`
    - **Original**: `anyOf: [{"type": "string"}, {"type": "null"}]`
    - **Updated**: `type: string` with `nullable: true`
    - **Reason**: The `anyOf`/`oneOf` with `{"type": "null"}` pattern for expressing nullable types is not supported in OpenAPI 3.0.0. The `nullable: true` property is used instead.
 
-5. **Removed OpenAPI 3.2.0-specific features**:
+6. **Removed OpenAPI 3.2.0-specific features**:
 
    - Removed `pathItems` from components (not supported in 3.0.0)
    - Removed `propertyNames`, `unevaluatedProperties`, and other JSON Schema draft features
    - **Reason**: These keywords are not part of the OpenAPI 3.0.0 specification.
 
-6. **Fixed `exclusiveMinimum`/`exclusiveMaximum` format**:
+7. **Fixed `exclusiveMinimum`/`exclusiveMaximum` format**:
 
    - **Original**: Boolean form (OpenAPI 3.1.x+)
    - **Updated**: Numeric form (OpenAPI 3.0.0)
    - **Reason**: OpenAPI 3.0.0 uses numeric values for exclusive boundaries, not boolean flags.
-
-7. **Extracted only Chat Completions endpoint from the full specification**:
-
-   - **Original**: Full Azure AI Foundry Models Service spec with all endpoints (batches, responses, files, etc.)
-   - **Updated**: Only the `/chat/completions` path and its related schemas are retained
-   - **Reason**: This connector module only covers the Chat Completions API. Including unrelated endpoints would generate unnecessary code.
-
-8. **Made `max_tokens`, `presence_penalty`, and `frequency_penalty` nullable in `chatCompletionsRequestCommon`**:
-
-   - **Changed Schema**: `chatCompletionsRequestCommon`
-   - **Original**: `max_tokens` (`integer`), `presence_penalty` (`number`), and `frequency_penalty` (`number`) were declared without `nullable: true`.
-   - **Updated**: Added `nullable: true` to all three fields.
-   - **Reason**: `createChatCompletionRequest` includes `chatCompletionsRequestCommon` (via `allOf`) and re-declares these same fields with `nullable: true`. In Ballerina, `allOf` is mapped to type inclusion, and an included field cannot be overridden by a wider (nullable) type — generation produced code that failed to compile with errors such as `included field 'frequency_penalty' of type 'decimal' cannot be overridden by a field of type 'decimal?'`. Making the base fields nullable aligns the included and overriding types so the generated `types.bal` compiles. (As a side effect, the numeric range constraints on these fields are dropped during generation, since Ballerina constraints are not supported on nullable union types — this matches the behavior already documented for `temperature`, `top_p`, and `stop`.)
-
-9. **Removed the `default` of `reasoning_effort` in `createChatCompletionRequest`**:
-
-   - **Changed Schema**: `createChatCompletionRequest`
-   - **Original**: `reasoning_effort` was declared with `default: "medium"`, which the Ballerina OpenAPI tool maps to a non-optional defaulted field (`"low"|"medium"|"high" reasoning_effort = "medium";`).
-   - **Updated**: Removed the `default`, so the field is generated as an optional field (`"low"|"medium"|"high" reasoning_effort?;`).
-   - **Reason**: With the default in place, every serialized request (`jsondata:toJson`) always carried `reasoning_effort: "medium"`, even for non-reasoning deployments (e.g. GPT-4o/GPT-3.5) and older `api-version`s that reject the parameter ("Unrecognized request argument"). `reasoning_effort` is optional in the official spec and valid only for reasoning models, so it must be omitted unless the caller explicitly sets it.
 
 ## OpenAPI cli command
 
