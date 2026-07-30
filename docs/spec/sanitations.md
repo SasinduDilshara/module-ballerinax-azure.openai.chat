@@ -89,6 +89,36 @@ These changes are done in order to improve the overall usability, and as workaro
 
    - **Reason**: In OpenAPI 3.0.0 a `$ref` overrides any sibling keywords, so the sibling `nullable: true` was ignored and the required `logprobs` field was generated as non-nullable (`OpenAICreateChatCompletionResponseChoicesLogprobs`). Azure returns `"logprobs": null` in every choice when log probabilities are not requested, so this required field must be nullable. Wrapping the `$ref` in `allOf` lets `nullable: true` apply, generating `OpenAICreateChatCompletionResponseChoicesLogprobs?`.
 
+10. **Removed `default: true` from `parallel_tool_calls`**:
+
+    - **Changed Schema**: `ChatCompletionsBody` — the `parallel_tool_calls` property.
+    - **Original**:
+
+      ```yaml
+      parallel_tool_calls:
+        type: boolean
+        description: Whether to enable parallel function calling during tool use.
+        default: true
+      ```
+
+    - **Updated**: Removed the `default: true` line so the property has no default:
+
+      ```yaml
+      parallel_tool_calls:
+        type: boolean
+        description: Whether to enable parallel function calling during tool use.
+      ```
+
+    - **Reason**: With `default: true` (and the property not being `required`), the Ballerina
+      OpenAPI tool generates a required-with-default field `boolean parallel_tool_calls = true;`.
+      That field is therefore always present on `ChatCompletionsBody` and always serialized onto
+      the wire — even for requests that carry no `tools`. Azure OpenAI rejects such requests with
+      `400 - "'parallel_tool_calls' is only allowed when 'tools' are specified."` Removing the
+      default makes the tool generate an optional field `boolean parallel_tool_calls?;`, which is
+      serialized only when the caller explicitly sets it (the `ai.azure` provider now sets it only
+      when tools are present). Per the OpenAI/Azure API contract the field is meaningful only
+      alongside `tools`, so an optional field is the correct representation.
+
 ## OpenAPI cli command
 
 The following command was used to generate the Ballerina client from the OpenAPI specification. The command should be executed from the repository root directory.

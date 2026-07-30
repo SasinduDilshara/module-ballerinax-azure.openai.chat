@@ -822,7 +822,7 @@ public type ChatCompletionsBody record {
     # `none` is the default when no tools are present. `auto` is the default if tools are present.
     OpenAIChatCompletionToolChoiceOption tool_choice?;
     # Whether to enable [parallel function calling](/docs/guides/function-calling#configuring-parallel-function-calling) during tool use.
-    boolean parallel_tool_calls = true;
+    boolean parallel_tool_calls?;
     # Deprecated in favor of `tool_choice`.
     #   Controls which (if any) function is called by the model.
     #   `none` means the model will not call a function and instead generates a
