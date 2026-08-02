@@ -402,7 +402,6 @@ public type OpenAIVoiceIdsOrCustomVoice OpenAIVoiceIdsShared|record {string id;}
 # Provides API key configurations needed when communicating with a remote HTTP endpoint.
 public type ApiKeysConfig record {|
     string api\-key;
-    string authorization;
 |};
 
 public type OpenAICreateChatCompletionStreamResponseChoicesLogprobs record {

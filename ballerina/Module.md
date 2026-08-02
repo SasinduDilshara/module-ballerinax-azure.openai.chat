@@ -28,6 +28,12 @@ To use the Azure OpenAI Chat Completions Connector, you must have access to an A
 
 6. Copy one of the provided keys (Key 1 or Key 2) and the endpoint URL. Store them securely to use in your application.
 
+7. Append `/openai/v1` to the endpoint URL. The portal shows the resource root (for example
+   `https://<resource-name>.openai.azure.com/`), while this connector targets the v1 API surface, so the value to
+   pass as `serviceUrl` is `https://<resource-name>.openai.azure.com/openai/v1`. Resources provisioned through
+   Azure AI Foundry may instead show `https://<resource-name>.services.ai.azure.com/`, which becomes
+   `https://<resource-name>.services.ai.azure.com/openai/v1`.
+
 ## Quickstart
 
 To use the `Azure OpenAI Chat Completions` connector in your Ballerina application, update the `.bal` file as follows:
@@ -42,7 +48,29 @@ import ballerinax/azure.openai.chat;
 
 ### Step 2: Create a new connector instance
 
-Create a `chat:Client` with the obtained API key and your Azure OpenAI resource endpoint.
+Create a `chat:Client` with your Azure OpenAI resource endpoint and **one** credential. Azure
+accepts either an API key or a Microsoft Entra ID access token, and the two are alternatives —
+provide whichever you have, not both.
+
+`serviceUrl` must be the endpoint including the `/openai/v1` base path, as described in step 7 of the setup
+guide — `https://<resource-name>.openai.azure.com/openai/v1`. Passing the bare resource root makes every request
+return `404`.
+
+Using the API key obtained in the setup guide:
+
+```ballerina
+configurable string apiKey = ?;
+configurable string serviceUrl = ?;
+
+final chat:Client azureOpenAIChat = check new ({
+    auth: {
+        api\-key: apiKey
+    }
+}, serviceUrl);
+```
+
+Alternatively, using a Microsoft Entra ID access token, which is sent as an `Authorization: Bearer`
+header:
 
 ```ballerina
 configurable string token = ?;

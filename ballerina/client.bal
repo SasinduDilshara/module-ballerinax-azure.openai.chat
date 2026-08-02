@@ -49,7 +49,6 @@ public isolated client class Client {
         map<anydata> headerValues = {...headers};
         if self.apiKeyConfig is ApiKeysConfig {
             headerValues["api-key"] = self.apiKeyConfig?.api\-key;
-            headerValues["authorization"] = self.apiKeyConfig?.authorization;
         }
         resourcePath = resourcePath + check getPathForQueryParam(queries);
         map<string|string[]> httpHeaders = http:getHeaderMap(headerValues);

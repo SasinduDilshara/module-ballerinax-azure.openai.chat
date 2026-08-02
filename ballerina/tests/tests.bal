@@ -23,8 +23,21 @@ configurable string token = isLiveServer ? os:getEnv("AZURE_OPENAI_TOKEN") : "te
 configurable string apiKey = isLiveServer ? os:getEnv("AZURE_OPENAI_API_KEY") : "test";
 configurable string serviceUrl = isLiveServer ? os:getEnv("AZURE_OPENAI_SERVICE_URL") : "http://localhost:9090";
 
+// Deployment names exercised by the live suite. Defaults to the single deployment
+// the mock understands; set this in `Config.toml` (or via `BAL_CONFIG_*`) to run the
+// live suite against a wider matrix, for example
+// `liveModels = ["gpt-4o", "gpt-4.1", "gpt-35-turbo"]`. Reasoning models such as the
+// gpt-5 family cannot be used here while `temperature`/`top_p` are sent on every
+// request.
+configurable string[] liveModels = ["gpt-4o-mini"];
+
 final string mockServiceUrl = "http://localhost:9090";
 const AzureAIFoundryModelsApiVersion apiVersion = "v1";
+
+// Model families the mock recognises. `gpt-5*` are reasoning models and reject
+// `temperature`/`top_p`; the rest accept them.
+final readonly & string[] reasoningModels = ["gpt-5", "gpt-5-mini", "gpt-5-nano"];
+final readonly & string[] samplingModels = ["gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-35-turbo"];
 
 // Client authenticated with a bearer token (default for both mock and live runs).
 final Client azureOpenAIChat = check initClient();
@@ -68,8 +81,9 @@ isolated function testSimpleChatCompletion() returns error? {
 }
 isolated function testClientInitWithApiKeyAuth() returns error? {
     // Exercises the API key authentication branch of the client initialization.
-    // `ApiKeysConfig` requires both the `api-key` and `authorization` fields.
-    Client apiKeyClient = check new ({auth: {api\-key: apiKey, authorization: "Bearer " + token}}, mockServiceUrl);
+    // `ApiKeysConfig` carries only the `api-key` field, so an API key alone is a
+    // complete credential.
+    Client apiKeyClient = check new ({auth: {api\-key: apiKey}}, mockServiceUrl);
 
     ChatCompletionsBody request = {
         model: "gpt-4o-mini",
@@ -80,6 +94,64 @@ isolated function testClientInitWithApiKeyAuth() returns error? {
 
     ChatCompletionResponse completion = check response.ensureType();
     test:assertEquals(completion.choices.length(), 1);
+}
+
+@test:Config {
+    groups: ["mock_tests"]
+}
+isolated function testApiKeyAuthSendsOnlyApiKeyHeader() returns error? {
+    // The mock rejects a request that carries both `api-key` and `authorization`,
+    // and reports the scheme it saw in `system_fingerprint`. Reaching a successful
+    // response therefore proves the client sent the `api-key` header alone.
+    Client apiKeyClient = check new ({auth: {api\-key: apiKey}}, mockServiceUrl);
+
+    ChatCompletionsBody request = {
+        model: "gpt-4o-mini",
+        messages: [{role: "user", "content": "Ping"}],
+        user: "auth-probe"
+    };
+
+    InlineResponse200 response = check apiKeyClient->/chat/completions.post(request, api\-version = apiVersion);
+
+    ChatCompletionResponse completion = check response.ensureType();
+    test:assertEquals(completion.system_fingerprint, AUTH_SCHEME_API_KEY,
+            "Expected the api-key header to be the only credential sent");
+}
+
+@test:Config {
+    groups: ["mock_tests"]
+}
+isolated function testBearerTokenAuthSendsOnlyAuthorizationHeader() returns error? {
+    // The bearer token branch must send `Authorization: Bearer ...` and no `api-key`.
+    ChatCompletionsBody request = {
+        model: "gpt-4o-mini",
+        messages: [{role: "user", "content": "Ping"}],
+        user: "auth-probe"
+    };
+
+    InlineResponse200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
+
+    ChatCompletionResponse completion = check response.ensureType();
+    test:assertEquals(completion.system_fingerprint, AUTH_SCHEME_BEARER,
+            "Expected the Authorization header to be the only credential sent");
+}
+
+@test:Config {
+    groups: ["mock_tests"]
+}
+isolated function testBlankApiKeyIsRejected() returns error? {
+    // A blank credential must not be accepted silently. This is the shape the
+    // connector previously forced on callers that had only one of the two headers.
+    Client blankKeyClient = check new ({auth: {api\-key: ""}}, mockServiceUrl);
+
+    ChatCompletionsBody request = {
+        model: "gpt-4o-mini",
+        messages: [{role: "user", "content": "Ping"}]
+    };
+
+    InlineResponse200|error response = blankKeyClient->/chat/completions.post(request, api\-version = apiVersion);
+
+    test:assertTrue(response is error, "Expected a blank api-key to be rejected");
 }
 
 @test:Config {
@@ -222,5 +294,64 @@ isolated function testChatCompletionWithEmptyMessagesReturnsError() {
     test:assertTrue(response is error, "Expected an error for an empty messages array");
     if response is http:ClientRequestError {
         test:assertEquals(response.detail().statusCode, 400);
+    }
+}
+
+// Models that accept the sampling parameters must still work when the caller sets
+// them, and reasoning models must reject them.
+//
+// Note that `temperature` and `top_p` carry `default: 1` in the specification, so
+// the tool generates them as required-with-default fields that go on the wire on
+// every request. Reasoning models therefore currently fail regardless of what the
+// caller sets, which is why the gpt-5 family is not exercised for success here.
+@test:Config {
+    groups: ["mock_tests"]
+}
+isolated function testSamplingParametersBehaviourByModelFamily() returns error? {
+    foreach string model in samplingModels {
+        ChatCompletionsBody request = {
+            model,
+            messages: [{role: "user", "content": "Ping"}],
+            temperature: 0.5,
+            top_p: 0.9
+        };
+
+        InlineResponse200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
+
+        ChatCompletionResponse completion = check response.ensureType();
+        test:assertEquals(completion.model, model);
+    }
+
+    foreach string model in reasoningModels {
+        ChatCompletionsBody request = {
+            model,
+            messages: [{role: "user", "content": "Ping"}],
+            temperature: 0.5
+        };
+
+        InlineResponse200|error response = azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
+
+        test:assertTrue(response is error,
+                string `Expected '${model}' to reject an explicitly set temperature`);
+    }
+}
+
+// Runs a completion against every deployment named in `liveModels`, so the live
+// suite can cover more than one model without hard-coding deployment names.
+@test:Config {
+    groups: ["live_tests"]
+}
+isolated function testChatCompletionAcrossLiveModels() returns error? {
+    foreach string model in liveModels {
+        ChatCompletionsBody request = {
+            model,
+            messages: [{role: "user", "content": "Reply with the single word: ok"}]
+        };
+
+        InlineResponse200 response = check azureOpenAIChat->/chat/completions.post(request, api\-version = apiVersion);
+
+        ChatCompletionResponse completion = check response.ensureType();
+        test:assertTrue(completion.choices.length() > 0,
+                string `Expected a completion choice from '${model}'`);
     }
 }

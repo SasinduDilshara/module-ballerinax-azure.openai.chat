@@ -19,6 +19,19 @@ import ballerina/log;
 
 listener http:Listener httpListener = new (9090);
 
+const string API_KEY_HEADER = "api-key";
+const string AUTHORIZATION_HEADER = "authorization";
+
+// Values the mock reports in `system_fingerprint` for an `auth-probe` request.
+const string AUTH_SCHEME_API_KEY = "auth-scheme-api-key";
+const string AUTH_SCHEME_BEARER = "auth-scheme-bearer";
+
+// Model families that reject the sampling parameters older chat models accept.
+final readonly & string[] REASONING_MODEL_PREFIXES = ["gpt-5", "o1", "o3", "o4"];
+
+// Parameters Azure rejects outright when the target is a reasoning model.
+final readonly & string[] UNSUPPORTED_REASONING_PARAMS = ["temperature", "top_p"];
+
 // A mock of the Azure OpenAI Chat Completions endpoint. The behaviour is shaped
 // by the incoming request so the tests can exercise realistic scenarios
 // (plain completions, tool calls, multiple choices, content filtering, etc.).
@@ -27,16 +40,40 @@ listener http:Listener httpListener = new (9090);
 // (every message role and content-part variant) without re-implementing the
 // union data binding of `ChatCompletionsBody` on the server side. `api-version`
 // is an optional query parameter, matching `CreateChatCompletionQueries`.
+//
+// The mock also enforces Azure's authentication contract: `api-key` and
+// `Authorization` are alternative schemes, so exactly one must be present and it
+// must carry a non-blank credential.
 http:Service mockService = service object {
 
-    resource function post chat/completions(@http:Payload map<json> payload,
-            string? api\-version = ()) returns json|http:BadRequest {
+    resource function post chat/completions(http:Request httpRequest, @http:Payload map<json> payload,
+            string? api\-version = ()) returns json|http:BadRequest|http:Unauthorized {
+
+        string|http:Unauthorized authScheme = resolveAuthScheme(httpRequest);
+        if authScheme is http:Unauthorized {
+            return authScheme;
+        }
+
+        // Scenario 0: report which authentication scheme reached the server, so
+        // tests can assert that only the header for the configured scheme is sent.
+        if payload["user"] == "auth-probe" {
+            return authProbeResponse(authScheme);
+        }
 
         // `model` is a required, non-empty string for a valid Azure request.
         json modelField = payload["model"];
         string model = modelField is string ? modelField : "";
         if model.trim() == "" {
             return <http:BadRequest>{body: {"error": {"code": "invalid_request", "message": "model is required"}}};
+        }
+
+        // Reasoning models reject the sampling parameters that older chat models
+        // accept, and Azure answers with a 400. Mirroring that here is what catches
+        // a connector that puts `temperature`/`top_p` on the wire when the caller
+        // never set them.
+        http:BadRequest? unsupported = checkUnsupportedParams(model, payload);
+        if unsupported is http:BadRequest {
+            return unsupported;
         }
 
         json messagesField = payload["messages"];
@@ -243,6 +280,102 @@ http:Service mockService = service object {
             "usage": {"completion_tokens": 11, "prompt_tokens": 13, "total_tokens": 24}
         };
     }
+};
+
+// Returns a `BadRequest` mirroring Azure's response when a reasoning model is
+// sent a parameter it does not support, or `()` when the payload is acceptable.
+isolated function checkUnsupportedParams(string model, map<json> payload) returns http:BadRequest? {
+    if !isReasoningModel(model) {
+        return ();
+    }
+    foreach string param in UNSUPPORTED_REASONING_PARAMS {
+        if payload.hasKey(param) {
+            return <http:BadRequest>{
+                body: {
+                    "error": {
+                        "code": "unsupported_parameter",
+                        "message": string `Unsupported parameter: '${param}' is not supported with this model.`,
+                        "param": param,
+                        "type": "invalid_request_error"
+                    }
+                }
+            };
+        }
+    }
+    return ();
+}
+
+// The gpt-5 family and the o-series are reasoning models.
+isolated function isReasoningModel(string model) returns boolean {
+    foreach string prefix in REASONING_MODEL_PREFIXES {
+        if model.startsWith(prefix) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Azure accepts either an `api-key` header or an `Authorization: Bearer ...`
+// header, never both. Returns the scheme that was used, or an `Unauthorized`
+// response when the combination of headers is not one Azure would accept.
+isolated function resolveAuthScheme(http:Request request) returns string|http:Unauthorized {
+    string? apiKeyHeader = optionalHeader(request, API_KEY_HEADER);
+    string? authorizationHeader = optionalHeader(request, AUTHORIZATION_HEADER);
+
+    if apiKeyHeader is string && authorizationHeader is string {
+        return <http:Unauthorized>{
+            body: {
+                "error": {
+                    "code": "conflicting_authentication",
+                    "message": string `only one of '${API_KEY_HEADER}' or '${AUTHORIZATION_HEADER}' may be sent`
+                }
+            }
+        };
+    }
+
+    if apiKeyHeader is string {
+        if apiKeyHeader.trim() == "" {
+            return unauthorized(string `'${API_KEY_HEADER}' header must not be blank`);
+        }
+        return AUTH_SCHEME_API_KEY;
+    }
+
+    if authorizationHeader is string {
+        if !authorizationHeader.startsWith("Bearer ") || authorizationHeader.substring(7).trim() == "" {
+            return unauthorized(string `'${AUTHORIZATION_HEADER}' header must carry a non-blank bearer token`);
+        }
+        return AUTH_SCHEME_BEARER;
+    }
+
+    return unauthorized("a credential is required");
+}
+
+isolated function optionalHeader(http:Request request, string name) returns string? {
+    string|http:HeaderNotFoundError value = request.getHeader(name);
+    return value is string ? value : ();
+}
+
+isolated function unauthorized(string message) returns http:Unauthorized => {
+    body: {"error": {"code": "unauthorized", "message": message}}
+};
+
+// A minimal valid completion whose `system_fingerprint` names the authentication
+// scheme the server observed.
+isolated function authProbeResponse(string authScheme) returns json => {
+    "id": "chatcmpl-auth-0004",
+    "choices": [
+        {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {"role": "assistant", "content": "Authenticated.", "refusal": null},
+            "logprobs": null
+        }
+    ],
+    "created": 1723091498,
+    "model": "gpt-4o-mini",
+    "system_fingerprint": authScheme,
+    "object": "chat.completion",
+    "usage": {"completion_tokens": 2, "prompt_tokens": 3, "total_tokens": 5}
 };
 
 function init() returns error? {

@@ -88,7 +88,6 @@ paths:
           $ref: ./examples/chat_completions.yaml
 security:
 - ApiKeyAuth: []
-- ApiKeyAuth_: []
 - OAuth2Auth:
   - https://cognitiveservices.azure.com/.default
 components:
@@ -1669,10 +1668,6 @@ components:
       type: apiKey
       in: header
       name: api-key
-    ApiKeyAuth_:
-      type: apiKey
-      in: header
-      name: authorization
     OAuth2Auth:
       type: oauth2
       flows:

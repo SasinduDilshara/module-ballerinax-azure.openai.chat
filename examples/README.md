@@ -12,9 +12,12 @@ The `ballerinax/azure.openai.chat` connector provides practical examples illustr
 2. For each example, create a `Config.toml` file in the related directory. Here's an example of how your `Config.toml` file should look:
 
     ```toml
-    token = "<Azure OpenAI API Key>"
-    serviceUrl = "<Azure OpenAI Endpoint URL>"
+    token = "<Azure OpenAI Access Token>"
+    serviceUrl = "https://<resource-name>.openai.azure.com/openai/v1"
     ```
+
+    `serviceUrl` must include the `/openai/v1` base path; the endpoint shown in the Azure portal is the resource
+    root and returns `404` on its own.
 
 ## Running an example
 
