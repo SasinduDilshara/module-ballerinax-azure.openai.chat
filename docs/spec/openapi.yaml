@@ -1203,11 +1203,9 @@ components:
           type: integer
           nullable: true
         temperature:
-          default: 1
           type: number
           nullable: true
         top_p:
-          default: 1
           type: number
           nullable: true
         user:
@@ -1351,7 +1349,6 @@ components:
           minimum: 1
           maximum: 128
           description: How many chat completion choices to generate for each input message. Note that you will be charged based on the number of generated tokens across all of the choices. Keep `n` as `1` to minimize costs.
-          default: 1
           type: integer
           nullable: true
         prediction:

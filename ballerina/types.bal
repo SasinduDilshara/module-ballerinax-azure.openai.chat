@@ -688,8 +688,8 @@ public type ChatCompletionsBody record {
     # with a maximum length of 512 characters.
     OpenAIMetadata metadata?;
     int? top_logprobs?;
-    decimal? temperature = 1;
-    decimal? top_p = 1;
+    decimal? temperature?;
+    decimal? top_p?;
     # A unique identifier representing your end-user, which can help to
     # monitor and detect abuse.
     # 
@@ -796,7 +796,7 @@ public type ChatCompletionsBody record {
     @deprecated
     int? max_tokens?;
     # How many chat completion choices to generate for each input message. Note that you will be charged based on the number of generated tokens across all of the choices. Keep `n` as `1` to minimize costs.
-    int? n = 1;
+    int? n?;
     # Static predicted output content, such as the content of a text file that is
     # being regenerated.
     OpenAIPredictionContent prediction?;

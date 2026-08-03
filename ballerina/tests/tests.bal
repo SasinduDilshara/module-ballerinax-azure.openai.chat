@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import ballerina/data.jsondata;
 import ballerina/http;
 import ballerina/os;
 import ballerina/test;
@@ -27,8 +28,8 @@ configurable string serviceUrl = isLiveServer ? os:getEnv("AZURE_OPENAI_SERVICE_
 // the mock understands; set this in `Config.toml` (or via `BAL_CONFIG_*`) to run the
 // live suite against a wider matrix, for example
 // `liveModels = ["gpt-4o", "gpt-4.1", "gpt-35-turbo"]`. Reasoning models such as the
-// gpt-5 family cannot be used here while `temperature`/`top_p` are sent on every
-// request.
+// gpt-5 family can also be listed here: `temperature`/`top_p`/`n` are no longer sent
+// unless the caller sets them (see sanitation item 11).
 configurable string[] liveModels = ["gpt-4o-mini"];
 
 final string mockServiceUrl = "http://localhost:9090";
@@ -354,4 +355,31 @@ isolated function testChatCompletionAcrossLiveModels() returns error? {
         test:assertTrue(completion.choices.length() > 0,
                 string `Expected a completion choice from '${model}'`);
     }
+}
+
+// Guards the sanitation that removed `default:` from the request-body sampling
+// parameters. A parameter the caller never set must not appear in the serialised
+// body: the reasoning models (o-series, gpt-5 family) reject the *presence* of
+// these keys, so a defaulted-but-always-present field made those models
+// uncallable. `jsondata:toJson` is the exact serialiser used by `client.bal`.
+@test:Config {
+    groups: ["mock_tests"]
+}
+isolated function testUnsetRequestParametersAreNotSerialized() returns error? {
+    ChatCompletionsBody request = {
+        model: "gpt-5",
+        messages: [{role: "user", "content": "This is a test message"}]
+    };
+
+    map<json> body = check jsondata:toJson(request).ensureType();
+    foreach string paramName in ["temperature", "top_p", "n"] {
+        test:assertFalse(body.hasKey(paramName),
+                msg = string `Expected '${paramName}' to be omitted when the caller does not set it`);
+    }
+
+    // An explicitly set parameter must still be serialised.
+    request.temperature = 0.2;
+    map<json> bodyWithTemperature = check jsondata:toJson(request).ensureType();
+    test:assertEquals(bodyWithTemperature["temperature"], 0.2d,
+            msg = "Expected an explicitly set temperature to be sent");
 }

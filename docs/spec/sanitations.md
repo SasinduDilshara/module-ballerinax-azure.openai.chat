@@ -1,6 +1,6 @@
 _Authors_: @ballerina-platform \
 _Created_: 2026/03/11 \
-_Updated_: 2026/03/11 \
+_Updated_: 2026/08/03 \
 _Edition_: Swan Lake
 
 # Sanitation for OpenAPI specification
@@ -118,6 +118,53 @@ These changes are done in order to improve the overall usability, and as workaro
       serialized only when the caller explicitly sets it (the `ai.azure` provider now sets it only
       when tools are present). Per the OpenAI/Azure API contract the field is meaningful only
       alongside `tools`, so an optional field is the correct representation.
+
+11. **Removed `default: 1` from `temperature`, `top_p` and `n`**:
+
+    - **Changed Schema**: `ChatCompletionsBody` — the `temperature`, `top_p` and `n` properties.
+    - **Original**:
+
+      ```yaml
+      temperature:
+        default: 1
+        type: number
+        nullable: true
+      top_p:
+        default: 1
+        type: number
+        nullable: true
+      'n':
+        minimum: 1
+        maximum: 128
+        description: How many chat completion choices to generate for each input message. ...
+        default: 1
+        type: integer
+        nullable: true
+      ```
+
+    - **Updated**: Removed the `default: 1` line from each of the three properties; the
+      `minimum`/`maximum` constraints, `nullable` markers and descriptions are unchanged.
+
+    - **Reason**: This is sanitation item 10 applied to the remaining defaulted request
+      parameters. `default: 1` on a non-`required` property makes the Ballerina OpenAPI tool
+      generate a required-with-default field (`decimal? temperature = 1;`), which is always
+      present on `ChatCompletionsBody` and therefore always serialized by
+      `jsondata:toJson(payload)` (`ballerina/client.bal`). Every request went out carrying
+      `"temperature":1.0,"top_p":1.0,"n":1` even when the caller set none of them. Azure
+      documents `temperature` and `top_p` as **not supported** for the reasoning models —
+      *"The following are currently unsupported with reasoning models: `temperature`, `top_p`,
+      `presence_penalty`, `frequency_penalty`, `logprobs`, `top_logprobs`, `logit_bias`,
+      `max_tokens`"*
+      ([Azure OpenAI reasoning models](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/reasoning)) —
+      so every GPT-5-series and o-series call carried parameters the deployment rejects with
+      `400 Unsupported parameter: 'temperature' is not supported with this model.`, a failure
+      that occurs even when the value is the default `1`. Removing the defaults makes the tool
+      generate plain optional fields (`decimal? temperature?;`, `int? n?;`) that are serialized
+      only when the caller sets them. `n` is not on the unsupported list, but it is included for
+      consistency and because it was previously impossible to omit. Upstream
+      `azure-v1-v1-generated.json` declares all three as optional with no requirement to send
+      them, and the values being sent were the service-side defaults, so behaviour for the
+      GPT-4 and GPT-3.5 families is unchanged.
 
 ## OpenAPI cli command
 
